@@ -17,8 +17,8 @@
 
       <!-- Formulário de Busca com Categorias -->
       <div class="navbar__search-wrapper">
-        <form class="search-form" action="#" method="GET">
-          <input type="text" name="search" class="search-form__input" placeholder="Search" aria-label="Pesquisar livros">
+        <form class="search-form" action="{{ url_for('biblioteca') }}" method="GET">
+          <input type="text" name="q" value="{{ busca if busca else '' }}" class="search-form__input" placeholder="Search" aria-label="Pesquisar livros">
 
           <div class="search-form__select-group">
             <select name="category" class="search-form__select" aria-label="Selecionar categoria">
@@ -38,9 +38,13 @@
 
         <!-- Botões de Autenticação e Perfil -->
         <div class="navbar__actions">
-          <a href="#" class="navbar__btn">Explore</a>
-          <a href="#" class="navbar__btn">Login</a>
-          <a href="#" class="navbar__btn">Signup</a>
+          <a href="{{ url_for('biblioteca') }}" class="navbar__btn">Explore</a>
+          {% if session.get('usuario_id') %}
+            <a href="{{ url_for('logout') }}" class="navbar__btn">Sair</a>
+          {% else %}
+            <a href="{{ url_for('login') }}" class="navbar__btn">Login</a>
+            <a href="{{ url_for('cadastro', modo='cadastro') }}" class="navbar__btn">Signup</a>
+          {% endif %}
           <!-- Botão dedicado com ícone de Usuário para alternar ao Perfil -->
           <button class="navbar__user-icon-btn" id="userProfileToggle" aria-label="Ir para Perfil do Usuário" title="Meu Perfil">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
@@ -52,9 +56,9 @@
     <!-- Links de Navegação em Pílula -->
     <ul class="navbar__pills">
       <li><a href="{{ url_for('index') }}" class="navbar__pill-link">Home</a></li>
-      <li><a href="#" class="navbar__pill-link">Lançamentos</a></li>
-      <li><a href="#" class="navbar__pill-link">Autores</a></li>
-      <li><a href="#" class="navbar__pill-link">Artigos</a></li>
+      <li><a href="{{ url_for('biblioteca') }}" class="navbar__pill-link">Lançamentos</a></li>
+      <li><a href="{{ url_for('biblioteca') }}" class="navbar__pill-link">Autores</a></li>
+      <li><a href="{{ url_for('descricao_livro') }}" class="navbar__pill-link">Artigos</a></li>
     </ul>
   </nav>
 
@@ -72,7 +76,7 @@
           <!-- Livro 1 -->
           <article class="book-card">
             <div class="book-card__badge" aria-hidden="true">100%</div>
-            <div class="book-card__cover"><div class="cover-grid"></div></div>
+            <a href="{{ url_for('descricao_livro') }}" class="book-card__cover" style="display: block;"><div class="cover-grid"></div></a>
             <header class="book-card__header"><h3 class="book-card__title">Título do Livro</h3></header>
             <div class="book-card__tracker">
               <input type="range" class="book-card__range" min="0" max="300" value="120">
@@ -89,7 +93,7 @@
           <!-- Livro 2 -->
           <article class="book-card">
             <div class="book-card__badge" aria-hidden="true">100%</div>
-            <div class="book-card__cover"><div class="cover-grid"></div></div>
+            <a href="{{ url_for('descricao_livro') }}" class="book-card__cover" style="display: block;"><div class="cover-grid"></div></a>
             <header class="book-card__header"><h3 class="book-card__title">Dom Casmurro</h3></header>
             <div class="book-card__tracker">
               <input type="range" class="book-card__range" min="0" max="250" value="80">
@@ -106,8 +110,8 @@
           <!-- Livro 3 -->
           <article class="book-card">
             <div class="book-card__badge" aria-hidden="true">100%</div>
-            <div class="book-card__cover"><div class="cover-grid"></div></div>
-            <header class="book-card__header"><h3 class="book-title">O Cortiço</h3></header>
+            <a href="{{ url_for('descricao_livro') }}" class="book-card__cover" style="display: block;"><div class="cover-grid"></div></a>
+            <header class="book-card__header"><h3 class="book-card__title">O Cortiço</h3></header>
             <div class="book-card__tracker">
               <input type="range" class="book-card__range" min="0" max="310" value="210">
               <output class="book-card__count">210 / 310 pág.</output>
@@ -123,8 +127,8 @@
           <!-- Livro 4 -->
           <article class="book-card">
             <div class="book-card__badge" aria-hidden="true">100%</div>
-            <div class="book-card__cover"><div class="cover-grid"></div></div>
-            <header class="book-card__header"><h3 class="book-title">Iracema</h3></header>
+            <a href="{{ url_for('descricao_livro') }}" class="book-card__cover" style="display: block;"><div class="cover-grid"></div></a>
+            <header class="book-card__header"><h3 class="book-card__title">Iracema</h3></header>
             <div class="book-card__tracker">
               <input type="range" class="book-card__range" min="0" max="180" value="180">
               <output class="book-card__count">180 / 180 pág.</output>
@@ -140,8 +144,8 @@
           <!-- Livro 5 -->
           <article class="book-card">
             <div class="book-card__badge" aria-hidden="true">100%</div>
-            <div class="book-card__cover"><div class="cover-grid"></div></div>
-            <header class="book-card__header"><h3 class="book-title">Memórias Póstumas</h3></header>
+            <a href="{{ url_for('descricao_livro') }}" class="book-card__cover" style="display: block;"><div class="cover-grid"></div></a>
+            <header class="book-card__header"><h3 class="book-card__title">Memórias Póstumas</h3></header>
             <div class="book-card__tracker">
               <input type="range" class="book-card__range" min="0" max="220" value="45">
               <output class="book-card__count">45 / 220 pág.</output>
@@ -157,8 +161,8 @@
           <!-- Livro 6 -->
           <article class="book-card">
             <div class="book-card__badge" aria-hidden="true">100%</div>
-            <div class="book-card__cover"><div class="cover-grid"></div></div>
-            <header class="book-card__header"><h3 class="book-title">Vidas Secas</h3></header>
+            <a href="{{ url_for('descricao_livro') }}" class="book-card__cover" style="display: block;"><div class="cover-grid"></div></a>
+            <header class="book-card__header"><h3 class="book-card__title">Vidas Secas</h3></header>
             <div class="book-card__tracker">
               <input type="range" class="book-card__range" min="0" max="160" value="10">
               <output class="book-card__count">10 / 160 pág.</output>
@@ -184,6 +188,22 @@
         <button class="carousel__nav-btn carousel__nav-btn--prev">&lt;</button>
         <div class="carousel__track">
           <!-- Cards adicionais de sugestão seguindo o mesmo padrão -->
+          {% if livros %}
+            {% for l in livros %}
+              <article class="book-card">
+                <div class="book-card__badge" aria-hidden="true">100%</div>
+                <a href="{{ url_for('descricao_livro', id_livro=l.id) }}" class="book-card__cover" style="display: block;"><div class="cover-grid"></div></a>
+                <header class="book-card__header"><h3 class="book-card__title" title="{{ l.titulo }}">{{ l.titulo }}</h3></header>
+                <div class="book-card__tracker">
+                  <input type="range" class="book-card__range" min="0" max="100" value="100">
+                  <output class="book-card__count">{{ l.formato or 'EPUB' }}</output>
+                </div>
+                <footer class="book-card__actions">
+                  <span class="book-card__score">100</span>
+                </footer>
+              </article>
+            {% endfor %}
+          {% endif %}
         </div>
         <button class="carousel__nav-btn carousel__nav-btn--next">&gt;</button>
       </div>
@@ -240,6 +260,7 @@
     </div>
   </footer>
 
+  <script src="{{ url_for('static', filename='js/cadastrojs.js') }}"></script>
   <script src="{{ url_for('static', filename='js/homejs.js') }}"></script>
 </body>
 </html>

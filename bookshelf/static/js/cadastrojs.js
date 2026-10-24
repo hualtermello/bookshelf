@@ -10,19 +10,47 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnVoltarLogin = document.getElementById("btnVoltarLogin");
   const telaLogin = document.getElementById("telaLogin");
   const telaCadastro = document.getElementById("telaCadastro");
+  const formCadastro = document.getElementById("formCadastro");
 
   if (btnIrParaCadastro && btnVoltarLogin && authContainer) {
-    btnIrParaCadastro.addEventListener("click", () => {
+    const abrirCadastro = () => {
       authContainer.classList.add("auth-container--show-register");
       telaCadastro.removeAttribute("inert");
       telaLogin.setAttribute("inert", "");
-    });
+    };
 
-    btnVoltarLogin.addEventListener("click", () => {
+    const abrirLogin = () => {
       authContainer.classList.remove("auth-container--show-register");
       telaLogin.removeAttribute("inert"); // <-- CORRIGIDO AQUI
       telaCadastro.setAttribute("inert", "");
+    };
+
+    btnIrParaCadastro.addEventListener("click", abrirCadastro);
+    btnVoltarLogin.addEventListener("click", abrirLogin);
+
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("modo") === "cadastro" || window.location.pathname === "/cadastro") {
+      abrirCadastro();
+    }
+  }
+
+  if (formCadastro) {
+    formCadastro.addEventListener("submit", (e) => {
+      const senha = document.getElementById("cadastroSenha");
+      const confirmaSenha = document.getElementById("cadastroConfirmaSenha");
+      if (senha && confirmaSenha && senha.value !== confirmaSenha.value) {
+        e.preventDefault();
+        confirmaSenha.setCustomValidity("As senhas não coincidem.");
+        confirmaSenha.reportValidity();
+      } else if (confirmaSenha) {
+        confirmaSenha.setCustomValidity("");
+      }
     });
+
+    const confirmaInput = document.getElementById("cadastroConfirmaSenha");
+    if (confirmaInput) {
+      confirmaInput.addEventListener("input", () => confirmaInput.setCustomValidity(""));
+    }
   }
 
   // 1. Controle dos Carrosséis

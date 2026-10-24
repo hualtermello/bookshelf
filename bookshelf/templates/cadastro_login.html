@@ -12,18 +12,28 @@
     <!-- Cabeçalho principal semântico com identidade visual da marca -->
     <header class="cabecalho-principal">
         <div class="cabecalho-principal__container">
-            <a href="#" class="cabecalho-principal__logo" aria-label="Página inicial Literarium Global">Literarium Global</a>
+            <a href="{{ url_for('index') }}" class="cabecalho-principal__logo" aria-label="Página inicial Literarium Global">Literarium Global</a>
             <nav class="navegacao-topo" aria-label="Navegação Principal">
                 <ul class="navegacao-topo__lista">
-                    <li><a href="#" class="navegacao-topo__link">Início</a></li>
-                    <li><a href="#" class="navegacao-topo__link">Catálogo</a></li>
-                    <li><a href="#" class="navegacao-topo__link">Contato</a></li>
+                    <li><a href="{{ url_for('index') }}" class="navegacao-topo__link">Início</a></li>
+                    <li><a href="{{ url_for('biblioteca') }}" class="navegacao-topo__link">Catálogo</a></li>
+                    <li><a href="{{ url_for('perfil') }}" class="navegacao-topo__link">Contato</a></li>
                 </ul>
             </nav>
         </div>
     </header>
 
-    <main class="conteudo-principal">
+    <main class="conteudo-principal" style="flex-direction: column; gap: 1rem;">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flash-messages" style="width: 100%; max-width: 440px;">
+              {% for category, message in messages %}
+                <div class="flash-alert flash-alert--{{ category }}">{{ message }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
         <!-- Contêiner principal com posicionamento relativo e overflow oculto para transições fluidas -->
         <div class="auth-container" id="authContainer">
 

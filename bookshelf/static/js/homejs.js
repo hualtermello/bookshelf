@@ -14,9 +14,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const tabButtons = document.querySelectorAll(".profile-controls__btn[data-tab]");
 
   const dynamicContainer = document.getElementById("dynamicMainContainer");
+  const initialShelfHTML = dynamicContainer ? dynamicContainer.innerHTML : "";
 
   const tabContents = {
-    shelf: `
+    shelf: initialShelfHTML || `
       <section class="board-container" style="box-shadow: none; padding: 0;">
         <h2 class="board-container__title">suas literaturas salvas</h2>
         <div class="carousel">
@@ -68,16 +69,35 @@ document.addEventListener("DOMContentLoaded", () => {
           <div id="progressBar" style="width: 0%; height: 100%; background: var(--accent-blue); transition: width 0.1s linear;"></div>
         </div>
         <p id="validationStatus" style="font-size: 0.9rem; color: #64748b;"></p>
-        <div id="publishActions" style="display: none; gap: 10px; margin-top: 10px;">
-          <button type="button" class="formulario-contato__btn" style="background: #10b981;">Publicar como eBook</button>
-          <button type="button" class="formulario-contato__btn" style="background: #6366f1;">Preparar para Impressão</button>
+        <div id="publishActions" style="display: none; flex-direction: column; gap: 12px; margin-top: 10px;">
+          <form action="/perfil/publicar" method="POST" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 10px;">
+            <input type="text" name="titulo" class="footer-global__input" placeholder="Título da Obra" required>
+            <input type="file" name="arquivo" class="footer-global__input" accept=".epub,.pdf,.txt,.docx" required>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <button type="submit" class="formulario-contato__btn" style="background: #10b981; color: #fff; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer;">Publicar como eBook</button>
+              <button type="button" class="formulario-contato__btn" style="background: #6366f1; color: #fff; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer;">Preparar para Impressão</button>
+            </div>
+          </form>
         </div>
       </div>
     `,
   };
 
   function initDynamicTabLogic(tabKey) {
-    if (tabKey === "draft") {
+    if (tabKey === "shelf" && dynamicContainer) {
+      const rangeInputs = dynamicContainer.querySelectorAll(".book-card__range");
+      rangeInputs.forEach((input) => {
+        const card = input.closest(".book-card");
+        const countOutput = card?.querySelector(".book-card__count");
+        const maxPages = parseInt(input.max, 10) || 300;
+        input.addEventListener("input", (e) => {
+          const val = e.target.value;
+          if (countOutput) {
+            countOutput.textContent = `${val} / ${maxPages} pág.`;
+          }
+        });
+      });
+    } else if (tabKey === "draft") {
       document.querySelectorAll(".text-editor__toolbar button").forEach((b) => {
         b.addEventListener("click", () =>
           document.execCommand(b.getAttribute("data-command"), false, null),
@@ -147,11 +167,15 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // 2. Validação do Formulário de Contato
-  const contactForm = document.querySelector(".formulario-contato form");
+  const contactForm =
+    document.querySelector(".formulario-contato form") ||
+    document.querySelector(".footer-global__contact-form");
   if (contactForm) {
     contactForm.addEventListener("submit", (e) => {
       e.preventDefault();
-      const inputs = contactForm.querySelectorAll(".formulario-contato__campo");
+      const inputs = contactForm.querySelectorAll(
+        ".formulario-contato__campo, .footer-global__input, .footer-global__textarea",
+      );
       let isValid = true;
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
