@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leitura - {{ livro.titulo }} | Bookshelf</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='estilogr.css') }}">
+</head>
+<body class="reader-page">
+<header class="reader-topbar">
+  <a class="reader-brand" href="{{ url_for('index') }}">Bookshelf</a>
+  <div class="reader-book-heading"><strong>{{ livro.titulo }}</strong><span>por {{ livro.autor or 'Autor não informado' }}</span></div>
+  <div class="reader-top-actions"><button type="button" class="reader-icon-btn" id="toggle-theme" title="Alternar tema">◐</button><a class="reader-exit" href="{{ url_for('descricao_livro', id_livro=livro.id) }}">Sair da leitura</a></div>
+</header>
+<main class="reader-layout">
+  <aside class="reader-sidebar">
+    <a class="reader-back" href="{{ url_for('descricao_livro', id_livro=livro.id) }}">← Detalhes do livro</a>
+    <div class="reader-mini-cover" aria-hidden="true">B<span>✦</span></div>
+    <h2>{{ livro.titulo }}</h2><p class="reader-muted">{{ livro.autor or 'Autor não informado' }}</p>
+    <div class="reader-progress-label"><span>Seu progresso</span><strong id="progress-percent">0%</strong></div>
+    <div class="reader-progress-track"><div id="progress-fill"></div></div>
+    <p class="reader-muted small">Acompanhe sua leitura nesta sessão.</p>
+    <div class="reader-sidebar-divider"></div><h3>Neste livro</h3>
+    <nav id="chapter-list" aria-label="Sumário do livro"><p class="reader-muted small">O sumário será carregado do EPUB.</p></nav>
+    <p class="reader-sidebar-note" id="reader-status">Preparando o arquivo do livro…</p>
+  </aside>
+  <section class="reader-main">
+    <div class="reader-toolbar"><span class="reader-location"><span class="reader-status-dot"></span>MODO DE LEITURA</span>
+      <div class="reader-controls"><button type="button" id="font-smaller" title="Diminuir fonte">A−</button><button type="button" id="font-larger" title="Aumentar fonte">A+</button><button type="button" id="width-toggle" title="Alternar largura">↔</button></div>
+    </div>
+    <div class="reading-paper" id="reading-paper">
+      {% if livro.tem_epub %}
+      <div id="epub-viewer" aria-label="Conteúdo do livro"></div>
+      {% else %}
+      <div class="reader-empty"><h1>Arquivo EPUB não encontrado</h1><p>Esta obra foi cadastrada antes da integração do leitor ou o arquivo não foi armazenado. Envie o EPUB novamente para habilitar a leitura.</p></div>
+      {% endif %}
+    </div>
+    <div class="reader-bottom-nav"><button type="button" class="reader-nav-btn secondary" id="previous-page" disabled>← Anterior</button><span id="page-counter">Carregando livro…</span><button type="button" class="reader-nav-btn" id="next-page">Próxima →</button></div>
+  </section>
+</main>
+{% if livro.tem_epub %}<script src="https://cdn.jsdelivr.net/npm/epubjs/dist/epub.min.js"></script>{% endif %}
+<script>window.BOOKSHELF_EPUB_URL = {{ url_for('servir_epub', id_livro=livro.id)|tojson }}; window.BOOKSHELF_HAS_EPUB = {{ livro.tem_epub|tojson }};</script>
+<script src="{{ url_for('static', filename='js/leitura.js') }}"></script>
+</body></html>
