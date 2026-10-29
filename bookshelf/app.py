@@ -1,4 +1,8 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session, g, send_from_directory, abort
+from flask import Flask, render_template, request, redirect, url_for, flash, session, g, send_from_directory, abort, jsonify
+import xml.etree.ElementTree as ET
+import posixpath
+import base64
+import mimetypes
 from flask_mysqldb import MySQL
 import MySQLdb
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -245,6 +249,185 @@ def servir_epub(id_livro):
     return send_from_directory(UPLOAD_FOLDER, nome_arquivo, mimetype='application/epub+zip', as_attachment=False)
 
 
+def extrair_capitulos_epub(caminho_epub):
+    capitulos = []
+    with zipfile.ZipFile(caminho_epub, 'r') as zf:
+        nomes_zip = {n.replace('\\', '/'): n for n in zf.namelist()}
+        opf_path = None
+
+        if 'META-INF/container.xml' in nomes_zip:
+            try:
+                container_xml = zf.read(nomes_zip['META-INF/container.xml'])
+                root = ET.fromstring(container_xml)
+                for elem in root.iter():
+                    if elem.tag.endswith('rootfile') and elem.attrib.get('full-path'):
+                        opf_path = elem.attrib['full-path'].replace('\\', '/')
+                        break
+            except Exception:
+                pass
+
+        if not opf_path or opf_path not in nomes_zip:
+            for nome in nomes_zip:
+                if nome.lower().endswith('.opf'):
+                    opf_path = nome
+                    break
+
+        arquivos_capitulos = []
+        titulos_toc = {}
+
+        if opf_path and opf_path in nomes_zip:
+            opf_dir = posixpath.dirname(opf_path)
+            try:
+                opf_root = ET.fromstring(zf.read(nomes_zip[opf_path]))
+                manifest = {}
+                ncx_href = None
+                nav_href = None
+
+                for item in opf_root.iter():
+                    if item.tag.endswith('item'):
+                        item_id = item.attrib.get('id')
+                        href = item.attrib.get('href', '')
+                        media_type = item.attrib.get('media-type', '')
+                        props = item.attrib.get('properties', '')
+                        if item_id and href:
+                            resolved = posixpath.normpath(posixpath.join(opf_dir, href)) if opf_dir else posixpath.normpath(href)
+                            manifest[item_id] = (resolved, media_type, href)
+                            if 'nav' in props.split():
+                                nav_href = resolved
+                            elif media_type == 'application/x-dtbncx+xml' or href.lower().endswith('.ncx'):
+                                ncx_href = resolved
+
+                if ncx_href and ncx_href in nomes_zip:
+                    try:
+                        ncx_dir = posixpath.dirname(ncx_href)
+                        ncx_root = ET.fromstring(zf.read(nomes_zip[ncx_href]))
+                        for navpoint in ncx_root.iter():
+                            if navpoint.tag.endswith('navPoint'):
+                                label_text = None
+                                content_src = None
+                                for child in navpoint.iter():
+                                    if child.tag.endswith('text') and child.text and not label_text:
+                                        label_text = child.text.strip()
+                                    elif child.tag.endswith('content') and child.attrib.get('src') and not content_src:
+                                        src_clean = child.attrib['src'].split('#')[0]
+                                        content_src = posixpath.normpath(posixpath.join(ncx_dir, src_clean)) if ncx_dir else posixpath.normpath(src_clean)
+                                if label_text and content_src and content_src not in titulos_toc:
+                                    titulos_toc[content_src] = label_text
+                    except Exception:
+                        pass
+
+                for itemref in opf_root.iter():
+                    if itemref.tag.endswith('itemref'):
+                        idref = itemref.attrib.get('idref')
+                        if idref in manifest:
+                            resolved, media_type, _ = manifest[idref]
+                            if resolved in nomes_zip and (
+                                'html' in media_type.lower() or resolved.lower().endswith(('.xhtml', '.html', '.htm'))
+                            ):
+                                arquivos_capitulos.append(resolved)
+            except Exception:
+                pass
+
+        if not arquivos_capitulos:
+            arquivos_capitulos = sorted(
+                n for n in nomes_zip
+                if n.lower().endswith(('.xhtml', '.html', '.htm')) and not posixpath.basename(n).lower().startswith('nav')
+            )
+
+        for idx, cap_path in enumerate(arquivos_capitulos):
+            raw_bytes = zf.read(nomes_zip[cap_path])
+            try:
+                html_str = raw_bytes.decode('utf-8')
+            except UnicodeDecodeError:
+                html_str = raw_bytes.decode('latin-1', errors='replace')
+
+            cap_dir = posixpath.dirname(cap_path)
+
+            def substituir_img(match):
+                prefixo, aspas, src = match.group(1), match.group(2), match.group(3)
+                if src.startswith(('data:', 'http://', 'https://')):
+                    return match.group(0)
+                src_limpo = src.split('#')[0].split('?')[0]
+                img_path = posixpath.normpath(posixpath.join(cap_dir, src_limpo)) if cap_dir else posixpath.normpath(src_limpo)
+                if img_path in nomes_zip:
+                    mime, _ = mimetypes.guess_type(img_path)
+                    mime = mime or 'image/jpeg'
+                    b64 = base64.b64encode(zf.read(nomes_zip[img_path])).decode('ascii')
+                    return f'{prefixo}{aspas}data:{mime};base64,{b64}{aspas}'
+                return match.group(0)
+
+            html_str = re.sub(r'(<img\b[^>]*?\bsrc=)([\'"])(.*?)\2', substituir_img, html_str, flags=re.IGNORECASE)
+
+            body_match = re.search(r'<body[^>]*>(.*?)</body>', html_str, flags=re.IGNORECASE | re.DOTALL)
+            conteudo = body_match.group(1) if body_match else html_str
+            conteudo = re.sub(r'<script\b[^>]*>.*?</script>', '', conteudo, flags=re.IGNORECASE | re.DOTALL)
+            conteudo = re.sub(r'<style\b[^>]*>.*?</style>', '', conteudo, flags=re.IGNORECASE | re.DOTALL)
+
+            texto_limpo = re.sub(r'<[^>]+>', '', conteudo).strip()
+            if not texto_limpo and '<img' not in conteudo.lower() and '<svg' not in conteudo.lower():
+                continue
+
+            titulo_cap = titulos_toc.get(cap_path)
+            if not titulo_cap:
+                h_match = re.search(r'<h[1-3][^>]*>(.*?)</h[1-3]>', conteudo, flags=re.IGNORECASE | re.DOTALL)
+                if h_match:
+                    titulo_cap = re.sub(r'<[^>]+>', '', h_match.group(1)).strip()
+            if not titulo_cap:
+                t_match = re.search(r'<title[^>]*>(.*?)</title>', html_str, flags=re.IGNORECASE | re.DOTALL)
+                if t_match:
+                    titulo_cap = re.sub(r'<[^>]+>', '', t_match.group(1)).strip()
+            if not titulo_cap:
+                titulo_cap = f'Capítulo {len(capitulos) + 1}'
+
+            capitulos.append({
+                'titulo': titulo_cap[:90],
+                'html': conteudo.strip()
+            })
+
+    return capitulos
+
+
+@app.route('/api/epub/<int:id_livro>/capitulos')
+def capitulos_epub(id_livro):
+    caminho_epub = os.path.join(UPLOAD_FOLDER, f'{id_livro}.epub')
+    if not os.path.isfile(caminho_epub):
+        abort(404, description='Arquivo EPUB não encontrado.')
+    try:
+        capitulos = extrair_capitulos_epub(caminho_epub)
+        return jsonify({'id_livro': id_livro, 'capitulos': capitulos})
+    except Exception as e:
+        return jsonify({'erro': str(e), 'capitulos': []}), 500
+
+
+@app.route('/api/livro/<int:id_livro>/progresso', methods=['POST'])
+def salvar_progresso_livro(id_livro):
+    if 'usuario_id' not in session:
+        return jsonify({'ok': False}), 200
+    dados = request.get_json(silent=True) or {}
+    try:
+        progresso = max(0.0, min(100.0, float(dados.get('progresso', 0))))
+    except (TypeError, ValueError):
+        progresso = 0.0
+    cursor = mysql.connection.cursor()
+    cursor.execute(
+        "SELECT 1 FROM biblioteca_usuario WHERE id_usuario = %s AND id_livro = %s",
+        (session['usuario_id'], id_livro)
+    )
+    if cursor.fetchone():
+        cursor.execute(
+            "UPDATE biblioteca_usuario SET progresso = %s WHERE id_usuario = %s AND id_livro = %s",
+            (progresso, session['usuario_id'], id_livro)
+        )
+    else:
+        cursor.execute(
+            "INSERT INTO biblioteca_usuario (id_usuario, id_livro, progresso) VALUES (%s, %s, %s)",
+            (session['usuario_id'], id_livro, progresso)
+        )
+    mysql.connection.commit()
+    cursor.close()
+    return jsonify({'ok': True, 'progresso': progresso})
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -422,7 +605,7 @@ def publicar_livro():
             raise ValueError('O arquivo selecionado não é um EPUB válido.')
         with zipfile.ZipFile(caminho_temporario) as epub:
             nomes = set(epub.namelist())
-            if 'META-INF/container.xml' not in nomes or 'mimetype' not in nomes:
+            if not any(n.replace('\\', '/').lower().endswith(('container.xml', '.opf', '.xhtml', '.html', '.htm')) for n in nomes):
                 raise ValueError('O EPUB está incompleto ou inválido.')
 
         cursor = mysql.connection.cursor()

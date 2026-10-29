@@ -37,7 +37,16 @@
     <div class="reader-bottom-nav"><button type="button" class="reader-nav-btn secondary" id="previous-page" disabled>← Anterior</button><span id="page-counter">Carregando livro…</span><button type="button" class="reader-nav-btn" id="next-page">Próxima →</button></div>
   </section>
 </main>
-{% if livro.tem_epub %}<script src="https://cdn.jsdelivr.net/npm/epubjs/dist/epub.min.js"></script>{% endif %}
-<script>window.BOOKSHELF_EPUB_URL = {{ url_for('servir_epub', id_livro=livro.id)|tojson }}; window.BOOKSHELF_HAS_EPUB = {{ livro.tem_epub|tojson }};</script>
+{% if livro.tem_epub %}
+<script src="{{ url_for('static', filename='js/jszip.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/epub.min.js') }}"></script>
+{% endif %}
+<script>
+  window.BOOKSHELF_BOOK_ID = {{ livro.id|tojson }};
+  window.BOOKSHELF_EPUB_URL = {{ url_for('servir_epub', id_livro=livro.id)|tojson }};
+  window.BOOKSHELF_CHAPTERS_URL = {{ url_for('capitulos_epub', id_livro=livro.id)|tojson }};
+  window.BOOKSHELF_PROGRESS_URL = {{ url_for('salvar_progresso_livro', id_livro=livro.id)|tojson }};
+  window.BOOKSHELF_HAS_EPUB = {{ livro.tem_epub|tojson }};
+</script>
 <script src="{{ url_for('static', filename='js/leitura.js') }}"></script>
 </body></html>
