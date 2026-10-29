@@ -1,4 +1,0 @@
-Flask>=3.0.3
-Flask-MySQLdb>=2.0.0
-Werkzeug>=3.0.0
-cryptography>=43.0.1
