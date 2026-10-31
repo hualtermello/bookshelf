@@ -19,9 +19,45 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const storageKey = `bookshelf_reader_book_${window.BOOKSHELF_BOOK_ID || "default"}`;
 
+  function normalizeHref(href) {
+    if (!href) return "";
+    return String(href)
+      .split("#")[0]
+      .split("?")[0]
+      .replace(/\\/g, "/")
+      .replace(/^(\.\.\/|\.\/)+/, "")
+      .replace(/^\/+/, "")
+      .replace(/^OEBPS\//i, "")
+      .trim();
+  }
+
+  function refreshRenditionLayout() {
+    if (!rendition) return;
+    try {
+      const contentsList = rendition.getContents ? rendition.getContents() : [];
+      contentsList.forEach((c) => {
+        if (typeof c.resizeCheck === "function") {
+          c.resizeCheck();
+        } else if (typeof c.expand === "function") {
+          c.expand();
+        }
+      });
+    } catch (_) {}
+    setTimeout(() => {
+      try {
+        const contentsList = rendition.getContents ? rendition.getContents() : [];
+        contentsList.forEach((c) => c.resizeCheck?.());
+        if (rendition.currentLocation) {
+          updateProgress(rendition.currentLocation());
+        }
+      } catch (_) {}
+    }, 120);
+  }
+
   function applyFontSize() {
     if (rendition) {
       rendition.themes.fontSize(`${fontSize}%`);
+      refreshRenditionLayout();
     }
     if (paper) {
       paper.style.setProperty("--reader-font-size", `${Math.round((18 * fontSize) / 100)}px`);
@@ -50,6 +86,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (rendition && viewer) {
       const h = Math.max(520, viewer.clientHeight || Math.round(window.innerHeight * 0.68));
       rendition.resize(viewer.clientWidth || "100%", h);
+      refreshRenditionLayout();
     }
   });
 
@@ -86,12 +123,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   function highlightActiveChapter(hrefOrIndex) {
     if (!chapterList) return;
     const buttons = chapterList.querySelectorAll(".reader-chapter");
+    const targetNorm = typeof hrefOrIndex === "string" ? normalizeHref(hrefOrIndex).toLowerCase() : "";
     buttons.forEach((btn, idx) => {
-      const btnHref = btn.getAttribute("data-href") || "";
+      const btnHref = normalizeHref(btn.getAttribute("data-href") || "").toLowerCase();
       const isMatch =
         typeof hrefOrIndex === "number"
           ? idx === hrefOrIndex
-          : Boolean(hrefOrIndex && btnHref && (hrefOrIndex.includes(btnHref) || btnHref.includes(hrefOrIndex)));
+          : Boolean(targetNorm && btnHref && targetNorm === btnHref);
       btn.classList.toggle("active", isMatch);
     });
   }
@@ -99,18 +137,29 @@ document.addEventListener("DOMContentLoaded", async () => {
   function updateProgress(location) {
     if (!location || !location.start) return;
 
-    let percentage = location.start.percentage;
-    if ((percentage === undefined || percentage === null) && locationsReady && book?.locations && location.start.cfi) {
+    const totalSpine = book?.spine?.spineItems?.length || 1;
+    const currentIdx = location.start.index ?? 0;
+    const displayedPage = location.start.displayed?.page || 1;
+    const displayedTotal = location.start.displayed?.total || 1;
+
+    let percentage = null;
+    if (locationsReady && book?.locations?.total > 0 && location.start.cfi) {
       try {
-        percentage = book.locations.percentageFromCfi(location.start.cfi);
+        const cfiPct = book.locations.percentageFromCfi(location.start.cfi);
+        if (typeof cfiPct === "number" && !Number.isNaN(cfiPct) && cfiPct > 0) {
+          percentage = cfiPct;
+        }
       } catch (_) {}
     }
-    if (percentage === undefined || percentage === null) {
-      const totalSpine = book?.spine?.spineItems?.length || 1;
-      const currentIdx = location.start.index || 0;
-      const displayedPage = location.start.displayed?.page || 1;
-      const displayedTotal = location.start.displayed?.total || 1;
-      percentage = (currentIdx + (displayedPage - 1) / Math.max(1, displayedTotal)) / Math.max(1, totalSpine);
+
+    if (percentage === null) {
+      percentage = (currentIdx + displayedPage / Math.max(1, displayedTotal)) / Math.max(1, totalSpine);
+    }
+
+    if (location.atEnd) {
+      percentage = 1;
+    } else if (location.atStart && currentIdx === 0 && displayedPage === 1) {
+      percentage = 0;
     }
 
     const pct = Math.max(0, Math.min(100, Math.round((percentage || 0) * 100)));
@@ -120,19 +169,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     const displayed = location.start.displayed;
     if (counter) {
       if (displayed && displayed.total) {
-        counter.textContent = `Página ${displayed.page} de ${displayed.total} (${pct}%)`;
+        counter.textContent = `Página ${displayed.page} de ${displayed.total} • Seção ${currentIdx + 1}/${totalSpine} (${pct}%)`;
       } else {
-        counter.textContent = `${pct}% do livro`;
+        counter.textContent = `Seção ${currentIdx + 1}/${totalSpine} (${pct}%)`;
       }
     }
 
-    if (previous) previous.disabled = Boolean(location.atStart);
+    const isAtStart = Boolean(location.atStart) || (currentIdx === 0 && displayedPage <= 1);
+    const isAtEnd = Boolean(location.atEnd) || (currentIdx >= totalSpine - 1 && displayedPage >= displayedTotal);
+
+    if (previous) previous.disabled = isAtStart;
     if (next) {
-      next.disabled = Boolean(location.atEnd);
-      next.textContent = location.atEnd ? "Fim do livro" : "Próxima →";
+      next.disabled = isAtEnd;
+      next.textContent = isAtEnd ? "Fim do livro" : "Próxima →";
     }
 
-    highlightActiveChapter(location.start.href);
+    highlightActiveChapter(location.start.href || currentIdx);
 
     try {
       if (location.start.cfi) {
@@ -227,6 +279,48 @@ document.addEventListener("DOMContentLoaded", async () => {
     await book.open(epubData, "binary");
     await book.ready;
 
+    // Garantir que todas as seções do spine (inclusive Capa e Sumário com linear="no")
+    // sejam navegáveis em sequência pelo leitor e pelos botões Anterior/Próxima.
+    const spineItems = book.spine?.spineItems || [];
+    spineItems.forEach((item, idx) => {
+      item.index = idx;
+      item.linear = true;
+      item.prev = () => (idx > 0 ? spineItems[idx - 1] : undefined);
+      item.next = () => (idx < spineItems.length - 1 ? spineItems[idx + 1] : undefined);
+      const norm = normalizeHref(item.href);
+      if (norm && book.spine.spineByHref) {
+        book.spine.spineByHref[norm] = idx;
+        book.spine.spineByHref[`../${norm}`] = idx;
+        book.spine.spineByHref[`OEBPS/${norm}`] = idx;
+        const base = norm.split("/").pop();
+        if (base && !(base in book.spine.spineByHref)) {
+          book.spine.spineByHref[base] = idx;
+        }
+      }
+    });
+
+    if (book.spine && typeof book.spine.get === "function") {
+      const origGet = book.spine.get.bind(book.spine);
+      book.spine.get = function (target) {
+        if (target === undefined || target === null) {
+          return spineItems[0] || null;
+        }
+        if (typeof target === "number") {
+          return spineItems[target] || null;
+        }
+        if (typeof target === "string" && !this.epubcfi?.isCfiString(target) && !target.startsWith("#")) {
+          const clean = target.split("#")[0];
+          const norm = normalizeHref(clean);
+          const byHref = this.spineByHref || {};
+          if (clean in byHref) return spineItems[byHref[clean]] || null;
+          if (norm in byHref) return spineItems[byHref[norm]] || null;
+          const found = spineItems.find((s) => normalizeHref(s.href).toLowerCase() === norm.toLowerCase());
+          if (found) return found;
+        }
+        return origGet(target);
+      };
+    }
+
     const viewerHeight = Math.max(520, viewer?.clientHeight || Math.round(window.innerHeight * 0.68));
     rendition = book.renderTo("epub-viewer", {
       width: "100%",
@@ -234,6 +328,38 @@ document.addEventListener("DOMContentLoaded", async () => {
       spread: "none",
       flow: "paginated",
       allowScriptedContent: true
+    });
+
+    rendition.hooks.content.register((contents) => {
+      try {
+        contents.addStylesheetRules({
+          "img, svg": {
+            "max-width": "100% !important",
+            "max-height": "86vh !important",
+            "height": "auto !important",
+            "object-fit": "contain"
+          }
+        });
+        const doc = contents.document;
+        if (doc?.fonts?.ready) {
+          doc.fonts.ready.then(() => {
+            contents.resizeCheck?.();
+            if (rendition?.currentLocation) {
+              updateProgress(rendition.currentLocation());
+            }
+          });
+        }
+        doc?.querySelectorAll("img").forEach((img) => {
+          if (!img.complete) {
+            img.addEventListener("load", () => {
+              contents.resizeCheck?.();
+              if (rendition?.currentLocation) {
+                updateProgress(rendition.currentLocation());
+              }
+            });
+          }
+        });
+      } catch (_) {}
     });
 
     rendition.themes.register("light", {
@@ -264,18 +390,51 @@ document.addEventListener("DOMContentLoaded", async () => {
       try {
         await rendition.display(savedCfi);
       } catch (_) {
-        await rendition.display();
+        await rendition.display(0);
       }
     } else {
-      await rendition.display();
+      await rendition.display(0);
     }
 
-    const toc = book.navigation?.toc?.length
-      ? book.navigation.toc
-      : (book.spine?.spineItems || []).map((item, idx) => ({
-          label: `Seção ${idx + 1}`,
-          href: item.href
-        }));
+    // Construir o sumário na ordem real de leitura (spine), associando os títulos do TOC
+    const rawToc = book.navigation?.toc || [];
+    const tocLabelByHref = {};
+    const collectTocLabels = (items) => {
+      items.forEach((t) => {
+        const k = normalizeHref(t.href).toLowerCase();
+        if (k && t.label && !tocLabelByHref[k]) {
+          tocLabelByHref[k] = t.label.trim();
+        }
+        if (t.subitems?.length) collectTocLabels(t.subitems);
+      });
+    };
+    collectTocLabels(rawToc);
+
+    const fallbackNames = {
+      "capa.xhtml": "Capa",
+      "dlivros.xhtml": "Apresentação",
+      "rosto.xhtml": "Folha de Rosto",
+      "dedicatoria.xhtml": "Dedicatória",
+      "sumario.xhtml": "Sumário",
+      "epigrafe.xhtml": "Epígrafe",
+      "creditos.xhtml": "Créditos",
+      "ficha.xhtml": "Ficha Catalográfica",
+      "sobre.xhtml": "Sobre a autora",
+      "livros.xhtml": "Obras da autora"
+    };
+
+    const toc = spineItems.length
+      ? spineItems.map((item, idx) => {
+          const norm = normalizeHref(item.href);
+          const lower = norm.toLowerCase();
+          const base = lower.split("/").pop() || "";
+          const label =
+            tocLabelByHref[lower] ||
+            fallbackNames[base] ||
+            `Seção ${idx + 1}`;
+          return { label, href: item.href, index: idx };
+        })
+      : rawToc;
 
     if (chapterList) {
       chapterList.innerHTML = "";
@@ -288,12 +447,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         button.className = "reader-chapter";
         button.setAttribute("data-href", chapter.href || "");
         button.innerHTML = `<span>${String(index + 1).padStart(2, "0")}</span> ${escapeHtml(chapter.label?.trim() || `Capítulo ${index + 1}`)}`;
-        button.addEventListener("click", () => rendition.display(chapter.href));
+        button.addEventListener("click", () => {
+          rendition.display(chapter.href || chapter.index);
+        });
         chapterList.appendChild(button);
       });
     }
 
     if (status) status.textContent = "Arquivo carregado. Boa leitura!";
+    refreshRenditionLayout();
     updateProgress(rendition.currentLocation());
 
     book.locations

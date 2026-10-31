@@ -152,6 +152,7 @@ def inicializar_banco():
                 """)
                 mysql.connection.commit()
                 cursor.close()
+                garantir_epubs_padrao()
                 print("Banco de dados verificado/inicializado com sucesso!")
                 return # Sai da função se der certo
             except Exception as e:
@@ -191,7 +192,37 @@ def inicializar_banco():
         """)
         mysql.connection.commit()
         cursor.close()
+        garantir_epubs_padrao()
         print(f"Banco de dados local (SQLite) inicializado com sucesso em {SQLITE_DB_PATH}!")
+
+
+def garantir_epubs_padrao():
+    import shutil
+    raiz_projeto = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    livros_padrao = [
+        ('5minutos.epub', '5minutos', 'José de Alencar'),
+        ('A Dadiva do Lobo - Anne Rice.epub', 'A Dádiva do Lobo', 'Anne Rice'),
+    ]
+    cursor = mysql.connection.cursor()
+    for nome_arquivo, titulo, autor in livros_padrao:
+        origem = os.path.join(raiz_projeto, nome_arquivo)
+        if not os.path.isfile(origem):
+            continue
+        cursor.execute("SELECT id_livro FROM livros WHERE LOWER(titulo) = LOWER(%s)", (titulo,))
+        existente = cursor.fetchone()
+        if existente:
+            id_livro = existente['id_livro']
+        else:
+            cursor.execute(
+                "INSERT INTO livros (titulo, autor, arquivo_epub, id_categoria) VALUES (%s, %s, %s, %s)",
+                (titulo, autor, 'EPUB', None)
+            )
+            id_livro = cursor.lastrowid
+        destino = os.path.join(UPLOAD_FOLDER, f"{id_livro}.epub")
+        if not os.path.isfile(destino):
+            shutil.copyfile(origem, destino)
+    mysql.connection.commit()
+    cursor.close()
 
 
 @app.route('/')
