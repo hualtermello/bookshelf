@@ -30,7 +30,23 @@ document.addEventListener("DOMContentLoaded", () => {
                 <input type="range" class="book-card__range" min="0" max="250" value="80">
                 <output class="book-card__count">80 / 250 pág.</output>
               </div>
-              <footer class="book-card__actions"><span class="book-card__score">100</span></footer>
+              <footer class="book-card__actions">
+                <div class="book-card__actions-buttons">
+                  <button type="button" class="book-card__action-btn book-card__action-btn--like is-active" title="Curtido! ❤️" aria-label="Curtir" onclick="toggleBookLike(this, event)">
+                    <svg viewBox="0 0 24 24" class="book-card__icon-heart"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l8.72-8.72 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                  </button>
+                  <button type="button" class="book-card__action-btn book-card__action-btn--fav is-active" title="Salvo nos favoritos! ⭐" aria-label="Favoritar" onclick="toggleBookFav(this, event)">
+                    <svg viewBox="0 0 24 24" class="book-card__icon-fav">
+                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
+                      <polygon points="12,7 13.1,9.3 15.6,9.6 13.8,11.3 14.3,13.7 12,12.5 9.7,13.7 10.2,11.3 8.4,9.6 10.9,9.3" class="fav-star"></polygon>
+                    </svg>
+                  </button>
+                </div>
+                <div class="book-card__reading-time" title="Você passou 1h 50m lendo este livro" onclick="mostrarTempoLeitura('Dom Casmurro', '1h 50m', event)">
+                  <svg viewBox="0 0 24 24" class="book-card__icon-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                  <span class="book-card__reading-time-val">1h 50m</span>
+                </div>
+              </footer>
             </article>
           </div>
           <button class="carousel__nav-btn carousel__nav-btn--next" aria-label="Próximo">&gt;</button>
@@ -38,44 +54,49 @@ document.addEventListener("DOMContentLoaded", () => {
       </section>
     `,
     draft: `
-      <div class="text-editor">
-        <div class="text-editor__toolbar">
-          <button type="button" class="perfil-controles__btn" data-command="bold" style="padding: 6px 12px; font-size: 0.8rem;">Negrito</button>
-          <button type="button" class="perfil-controles__btn" data-command="italic" style="padding: 6px 12px; font-size: 0.8rem;">Itálico</button>
-          <button type="button" class="perfil-controles__btn" data-command="underline" style="padding: 6px 12px; font-size: 0.8rem;">Sublinhado</button>
+      <div class="text-editor" style="display: flex; flex-direction: column; gap: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+          <div class="text-editor__toolbar">
+            <button type="button" class="perfil-controles__btn" data-command="bold" style="padding: 9px 18px; font-size: 0.85rem;">Negrito</button>
+            <button type="button" class="perfil-controles__btn" data-command="italic" style="padding: 9px 18px; font-size: 0.85rem;">Itálico</button>
+            <button type="button" class="perfil-controles__btn" data-command="underline" style="padding: 9px 18px; font-size: 0.85rem;">Sublinhado</button>
+          </div>
+          <a href="/modelo-grafica" class="formulario-contato__btn" style="text-decoration: none; background: var(--bg-nav); color: #fff; padding: 10px 22px; border-radius: 999px; font-size: 0.88rem; font-weight: 700;">
+            Abrir Modelo Completo para Gráfica (Páginas A4) &rarr;
+          </a>
         </div>
-        <div contenteditable="true" class="text-editor__textarea" style="border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; min-height: 200px; outline: none; background: #fff; color: #252b42;">Comece a escrever seu rascunho literário aqui...</div>
+        <div contenteditable="true" class="text-editor__textarea" style="border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; min-height: 220px; outline: none; background: #fff; color: #252b42;">Comece a escrever seu rascunho literário aqui...</div>
       </div>
     `,
     chat: `
-      <div class="social-chat">
+      <div class="social-chat" style="display: flex; flex-direction: column; gap: 16px;">
         <div class="social-chat__input-group">
           <input type="text" id="chatInput" class="social-chat__input" placeholder="O que você está pensando sobre sua leitura atual?">
-          <button type="button" id="chatSubmit" class="formulario-contato__btn" style="padding: 10px 16px;">Enviar</button>
+          <button type="button" id="chatSubmit" class="formulario-contato__btn" style="padding: 12px 24px;">Enviar</button>
         </div>
-        <div class="social-chat__feed" id="chatFeed" style="display: flex; flex-direction: column; gap: 12px; margin-top: 16px;">
-          <div class="social-chat__post" style="background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
-            <strong style="color: #3b82f6; display: block; margin-bottom: 4px;">Leitor Ávido</strong>
+        <div class="social-chat__feed" id="chatFeed" style="display: flex; flex-direction: column; gap: 14px; margin-top: 8px;">
+          <div class="social-chat__post" style="background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0;">
+            <strong style="color: var(--bg-nav); display: block; margin-bottom: 6px;">Leitor Ávido</strong>
             <p style="color: #252b42; font-size: 0.95rem;">Terminei o capítulo 3. Incrível como a narrativa prende a atenção!</p>
           </div>
         </div>
       </div>
     `,
     publish: `
-      <div class="publish-section" style="display: flex; flex-direction: column; gap: 16px;">
-        <h3 style="font-size: 1.1rem; color: var(--text-dark);">Revisão Ortográfica e Publicação</h3>
-        <button type="button" id="startValidationBtn" class="formulario-contato__btn">Iniciar Validação</button>
-        <div class="progress-container" style="display: none; width: 100%; background: #e2e8f0; border-radius: 8px; height: 16px; overflow: hidden;">
+      <div class="publish-section" style="display: flex; flex-direction: column; gap: 18px;">
+        <h3 style="font-size: 1.15rem; color: var(--bg-nav);">Revisão Ortográfica e Publicação</h3>
+        <button type="button" id="startValidationBtn" class="formulario-contato__btn" style="align-self: flex-start;">Iniciar Validação</button>
+        <div class="progress-container" style="display: none; width: 100%; background: #e2e8f0; border-radius: 999px; height: 16px; overflow: hidden;">
           <div id="progressBar" style="width: 0%; height: 100%; background: var(--accent-blue); transition: width 0.1s linear;"></div>
         </div>
-        <p id="validationStatus" style="font-size: 0.9rem; color: #64748b;"></p>
-        <div id="publishActions" style="display: none; flex-direction: column; gap: 12px; margin-top: 10px;">
-          <form action="/perfil/publicar" method="POST" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 10px;">
+        <p id="validationStatus" style="font-size: 0.92rem; color: #64748b;"></p>
+        <div id="publishActions" style="display: none; flex-direction: column; gap: 16px; margin-top: 10px;">
+          <form action="/perfil/publicar" method="POST" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 14px;">
             <input type="text" name="titulo" class="footer-global__input" placeholder="Título da Obra" required>
             <input type="file" name="arquivo" class="footer-global__input" accept=".epub" required>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-              <button type="submit" class="formulario-contato__btn" style="background: #10b981; color: #fff; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer;">Publicar como eBook</button>
-              <button type="button" class="formulario-contato__btn" style="background: #6366f1; color: #fff; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer;">Preparar para Impressão</button>
+            <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px;">
+              <button type="submit" class="formulario-contato__btn" style="background: #15803d; color: #fff; border: none; padding: 12px 24px; border-radius: 999px; cursor: pointer;">Publicar como eBook</button>
+              <a href="/modelo-grafica" class="formulario-contato__btn" style="background: var(--bg-nav); color: #fff; border: none; padding: 12px 24px; border-radius: 999px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center;">Preparar para Impressão (Modelo Gráfica A4)</a>
             </div>
           </form>
         </div>
@@ -208,3 +229,60 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+
+// Interações dos Cards de Livro: Like (Coração), Favoritar (Coração Favorito) e Relógio
+window.toggleBookLike = function(btn, event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  const wasActive = btn.classList.contains("is-active");
+  btn.classList.toggle("is-active");
+  if (!wasActive) {
+    btn.setAttribute("title", "Curtido! ❤️");
+  } else {
+    btn.setAttribute("title", "Curtir (Like)");
+  }
+};
+
+window.toggleBookFav = function(btn, event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  const wasActive = btn.classList.contains("is-active");
+  btn.classList.toggle("is-active");
+  if (!wasActive) {
+    btn.setAttribute("title", "Salvo nos favoritos! ⭐");
+  } else {
+    btn.setAttribute("title", "Favoritar este livro");
+  }
+};
+
+window.mostrarTempoLeitura = function(titulo, tempo, event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  // Remove toast anterior se houver
+  const oldToast = document.querySelector(".book-reading-toast");
+  if (oldToast) oldToast.remove();
+
+  const toast = document.createElement("div");
+  toast.className = "book-reading-toast";
+  toast.innerHTML = `
+    <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: #38bdf8;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+      <span>Tempo de Leitura Registrado</span>
+    </div>
+    <div style="font-size: 0.88rem; color: #f1f5f9; line-height: 1.4;">
+      Você já dedicou <strong style="color: #FDE68A;">${tempo}</strong> à leitura de <em>${titulo}</em> no BookShelf.
+    </div>
+  `;
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    toast.classList.add("book-reading-toast--fade");
+    setTimeout(() => toast.remove(), 350);
+  }, 3200);
+};

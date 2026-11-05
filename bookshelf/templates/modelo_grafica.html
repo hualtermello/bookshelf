@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BookShelf - Modelo de Livro para Gráfica (A4)</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='estilogr.css') }}">
+  <style>
+    /* Estilos dedicados ao Editor de Modelo para Gráfica (Padrão A4 - 210mm x 297mm) */
+    .grafica-workspace {
+      max-width: 1360px;
+      margin: 24px auto;
+      padding: 0 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .grafica-header-bar {
+      background: var(--bg-board);
+      border-radius: 24px;
+      padding: 24px 30px;
+      box-shadow: 0 10px 28px rgba(45, 23, 15, 0.12);
+      border: 1px solid rgba(144, 50, 61, 0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .grafica-header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .grafica-title-group h1 {
+      font-size: 1.45rem;
+      color: var(--bg-nav);
+      margin-bottom: 6px;
+    }
+
+    .grafica-title-group p {
+      font-size: 0.92rem;
+      color: #475569;
+    }
+
+    .grafica-actions-group {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .grafica-btn {
+      padding: 11px 20px;
+      border-radius: 999px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.2s ease;
+      text-decoration: none;
+    }
+
+    .grafica-btn:hover {
+      opacity: 0.96;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.16);
+    }
+
+    .grafica-btn--primary {
+      background: var(--bg-nav);
+      color: #fff;
+    }
+
+    .grafica-btn--accent {
+      background: var(--accent-blue);
+      color: #fff;
+    }
+
+    .grafica-btn--success {
+      background: #15803d;
+      color: #fff;
+    }
+
+    .grafica-btn--outline {
+      background: #f8fafc;
+      color: var(--text-dark);
+      border: 1px solid #cbd5e1;
+    }
+
+    .grafica-progress-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      background: #f8fafc;
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .grafica-progress-track {
+      flex: 1;
+      min-width: 200px;
+      height: 12px;
+      background: #e2e8f0;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .grafica-progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #BC8034, #15803d);
+      transition: width 0.25s ease;
+    }
+
+    .grafica-progress-text {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--bg-nav);
+      white-space: nowrap;
+    }
+
+    .grafica-layout {
+      display: grid;
+      grid-template-columns: 310px 1fr;
+      gap: 22px;
+      align-items: start;
+    }
+
+    @media (max-width: 1024px) {
+      .grafica-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Painel lateral de páginas */
+    .grafica-sidebar {
+      background: var(--bg-board);
+      border-radius: 20px;
+      padding: 18px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+      position: sticky;
+      top: 16px;
+      max-height: calc(100vh - 32px);
+      overflow-y: auto;
+    }
+
+    .grafica-sidebar__title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--bg-nav);
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .grafica-page-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .grafica-page-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 11px 14px;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      background: #fff;
+      cursor: pointer;
+      font-size: 0.84rem;
+      transition: all 0.18s ease;
+    }
+
+    .grafica-page-item:hover {
+      border-color: var(--accent-blue);
+      background: #fffbeb;
+    }
+
+    .grafica-page-item.is-active {
+      background: var(--bg-nav);
+      color: #fff;
+      border-color: var(--bg-nav);
+      font-weight: 600;
+    }
+
+    .grafica-page-item__left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow: hidden;
+    }
+
+    .grafica-page-item__num {
+      font-size: 0.72rem;
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: rgba(0,0,0,0.07);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .grafica-page-item.is-active .grafica-page-item__num {
+      background: rgba(255,255,255,0.2);
+      color: #fff;
+    }
+
+    .grafica-page-item__status {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.72rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .grafica-page-item__status.is-done {
+      background: #dcfce7;
+      color: #15803d;
+    }
+
+    .grafica-page-item__status.is-pending {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+
+    .grafica-sidebar__add-group {
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px dashed #cbd5e1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Área da Folha A4 */
+    .grafica-stage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .grafica-toolbar {
+      width: 100%;
+      background: var(--bg-board);
+      border-radius: 18px;
+      padding: 14px 22px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+
+    .grafica-toolbar__tools {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .grafica-tool-btn {
+      padding: 8px 16px;
+      border-radius: 999px;
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      color: var(--text-dark);
+      transition: all 0.15s ease;
+    }
+
+    .grafica-tool-btn:hover {
+      background: #f1f5f9;
+      transform: translateY(-1px);
+    }
+
+    /* Folha A4 proporcional (210mm x 297mm) */
+    .a4-sheets-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+      width: 100%;
+    }
+
+    .a4-sheet {
+      width: 210mm;
+      min-height: 297mm;
+      max-width: 100%;
+      background: #fffef9;
+      color: #1c1917;
+      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.25);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      font-family: 'Georgia', 'Times New Roman', serif;
+      transition: padding 0.2s;
+      border: 1px solid #d6d3d1;
+    }
+
+    /* Margens espelhadas padrão ABNT / Gráfica A4:
+       Página Ímpar (Frente/Direita): Superior 30mm, Inferior 20mm, Interna (Esquerda/Lombada) 30mm, Externa (Direita) 20mm
+       Página Par (Verso/Esquerda): Superior 30mm, Inferior 20mm, Interna (Direita/Lombada) 30mm, Externa (Esquerda) 20mm */
+    .a4-sheet--impar {
+      padding: 28mm 20mm 22mm 30mm;
+    }
+
+    .a4-sheet--par {
+      padding: 28mm 30mm 22mm 20mm;
+    }
+
+    .a4-sheet--capa {
+      padding: 25mm 25mm 25mm 25mm;
+      background: linear-gradient(160deg, #5E0B15 0%, #3b060c 100%);
+      color: #fff;
+    }
+
+    .a4-sheet--contracapa {
+      padding: 25mm 25mm 25mm 25mm;
+      background: #2b070c;
+      color: #f8fafc;
+    }
+
+    /* Guia de Sangria e Margem de Segurança da Gráfica */
+    .a4-sheet.show-guides::before {
+      content: "SANGRIA 3mm | CORTE A4 (210 × 297 mm)";
+      position: absolute;
+      inset: 3mm;
+      border: 1px dashed rgba(220, 38, 38, 0.45);
+      pointer-events: none;
+      font-family: monospace;
+      font-size: 9px;
+      color: rgba(220, 38, 38, 0.7);
+      padding: 2px 6px;
+    }
+
+    .a4-sheet.show-guides::after {
+      content: "MANCHA GRÁFICA / MARGEM DE SEGURANÇA";
+      position: absolute;
+      top: 28mm;
+      bottom: 22mm;
+      left: 25mm;
+      right: 25mm;
+      border: 1px dotted rgba(37, 99, 235, 0.35);
+      pointer-events: none;
+      font-family: monospace;
+      font-size: 9px;
+      color: rgba(37, 99, 235, 0.6);
+      padding: 2px 6px;
+    }
+
+    .a4-running-header {
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #78716c;
+      border-bottom: 1px solid #e7e5e4;
+      padding-bottom: 6px;
+      margin-bottom: 18px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .a4-running-footer {
+      font-size: 0.82rem;
+      color: #57534e;
+      padding-top: 10px;
+      border-top: 1px solid #e7e5e4;
+      margin-top: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .a4-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* Campos editáveis dentro da folha A4 */
+    .a4-field-label {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #90323D;
+      font-weight: 700;
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    .a4-sheet--capa .a4-field-label,
+    .a4-sheet--contracapa .a4-field-label {
+      color: #facc15;
+    }
+
+    .a4-input,
+    .a4-textarea {
+      width: 100%;
+      border: 1px dashed rgba(144, 50, 61, 0.35);
+      background: rgba(255, 255, 255, 0.65);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-family: 'Georgia', 'Times New Roman', serif;
+      color: #1c1917;
+      font-size: 1rem;
+      line-height: 1.65;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .a4-sheet--capa .a4-input,
+    .a4-sheet--capa .a4-textarea,
+    .a4-sheet--contracapa .a4-input,
+    .a4-sheet--contracapa .a4-textarea {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.35);
+    }
+
+    .a4-input:focus,
+    .a4-textarea:focus {
+      outline: none;
+      border-style: solid;
+      border-color: var(--accent-blue);
+      background: #fff;
+      color: #1c1917;
+    }
+
+    .a4-miolo-textarea {
+      flex: 1;
+      min-height: 560px;
+      resize: vertical;
+      text-align: justify;
+      font-size: 11.5pt;
+      line-height: 1.75;
+      text-indent: 1.25cm;
+    }
+
+    .ficha-catalografica-box {
+      border: 1.5px solid #1c1917;
+      padding: 16px 20px;
+      margin-top: auto;
+      background: #fff;
+      font-family: 'Courier New', monospace;
+      font-size: 0.82rem;
+      line-height: 1.45;
+    }
+
+    .grafica-nav-bottom {
+      width: 100%;
+      max-width: 210mm;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      background: var(--bg-board);
+      padding: 18px 26px;
+      border-radius: 18px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    }
+
+    .grafica-toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--bg-nav);
+      color: #fff;
+      padding: 14px 20px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+      font-size: 0.9rem;
+      font-weight: 600;
+      display: none;
+      z-index: 9999;
+    }
+
+    /* Configuração de Impressão Oficial A4 para Gráfica */
+    @page {
+      size: A4 portrait;
+      margin: 0;
+    }
+
+    @media print {
+      body {
+        background: #fff !important;
+      }
+      .navbar,
+      .footer-global,
+      .grafica-header-bar,
+      .grafica-sidebar,
+      .grafica-toolbar,
+      .grafica-nav-bottom,
+      .a4-field-label,
+      .no-print {
+        display: none !important;
+      }
+      .grafica-workspace,
+      .grafica-layout,
+      .grafica-stage,
+      .a4-sheets-container {
+        margin: 0 !important;
+        padding: 0 !important;
+        display: block !important;
+        width: 100% !important;
+      }
+      .a4-sheet {
+        width: 210mm !important;
+        height: 297mm !important;
+        min-height: 297mm !important;
+        box-shadow: none !important;
+        border: none !important;
+        page-break-after: always;
+        break-after: page;
+      }
+      .a4-input,
+      .a4-textarea {
+        border: none !important;
+        background: transparent !important;
+        padding: 0 !important;
+        resize: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAVBAR GLOBAL -->
+  <nav class="navbar" aria-label="Navegação Principal">
+    <div class="navbar__top">
+      <a href="{{ url_for('index') }}" class="navbar__logo">BookShelf</a>
+      <div class="navbar__search-wrapper">
+        <div class="navbar__actions">
+          <a href="{{ url_for('index') }}" class="navbar__btn">Home</a>
+          <a href="{{ url_for('biblioteca') }}" class="navbar__btn">Biblioteca</a>
+          {% if session.get('usuario_id') %}
+            <span class="navbar__user-greeting" style="color: #fff; font-size: 0.88rem; font-weight: 600;">Olá, {{ session.get('nome') or session.get('username') }}!</span>
+            <a href="{{ url_for('perfil') }}" class="navbar__btn">Meu Perfil</a>
+            <a href="{{ url_for('logout') }}" class="navbar__btn">Sair</a>
+          {% else %}
+            <a href="{{ url_for('login') }}" class="navbar__btn">Login</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <ul class="navbar__pills">
+      <li><a href="{{ url_for('index') }}" class="navbar__pill-link">Home</a></li>
+      <li><a href="{{ url_for('lancamentos') }}" class="navbar__pill-link">Lançamentos</a></li>
+      <li><a href="{{ url_for('autores') }}" class="navbar__pill-link">Autores</a></li>
+      <li><a href="{{ url_for('artigos') }}" class="navbar__pill-link">Artigos</a></li>
+      <li><a href="{{ url_for('modelo_grafica') }}" class="navbar__pill-link" style="background: var(--accent-blue); color: #fff;">Modelo para Gráfica (Escrever Livro)</a></li>
+      <li><a href="{{ url_for('perfil') }}" class="navbar__pill-link">Perfil do Autor</a></li>
+    </ul>
+  </nav>
+
+  <main class="grafica-workspace">
+    <!-- BARRA DE TOPO DO MODELO DE GRÁFICA -->
+    <section class="grafica-header-bar">
+      <div class="grafica-header-top">
+        <div class="grafica-title-group">
+          <h1>Modelo Oficial de Livro para Gráfica — Formato A4 (21 × 29,7 cm)</h1>
+          <p>Preencha todas as páginas pré-textuais, os capítulos do miolo e o colofão técnico conforme o padrão enviado para impressão em gráfica.</p>
+        </div>
+        <div class="grafica-actions-group">
+          <button type="button" id="btnPreencherExemplo" class="grafica-btn grafica-btn--outline" title="Preenche todas as páginas com um modelo exemplo para facilitar">
+            Preencher Exemplo Guia
+          </button>
+          <button type="button" id="btnToggleViewMode" class="grafica-btn grafica-btn--outline">
+            Ver Todas as Páginas (Modo Gráfica)
+          </button>
+          <button type="button" id="btnSalvarModelo" class="grafica-btn grafica-btn--accent">
+            Salvar Todas as Páginas
+          </button>
+          <button type="button" id="btnImprimirGrafica" class="grafica-btn grafica-btn--primary">
+            Imprimir / Gerar PDF A4 para Gráfica
+          </button>
+          <button type="button" id="btnPublicarModelo" class="grafica-btn grafica-btn--success">
+            Validar e Publicar Livro
+          </button>
+        </div>
+      </div>
+
+      <!-- Barra de Progresso de Preenchimento das Páginas -->
+      <div class="grafica-progress-row">
+        <span class="grafica-progress-text" id="progressoLabel">0 de 12 páginas preenchidas (0%)</span>
+        <div class="grafica-progress-track">
+          <div class="grafica-progress-fill" id="progressoFill"></div>
+        </div>
+        <label style="font-size: 0.82rem; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+          <input type="checkbox" id="chkMostrarGuias" checked>
+          Mostrar marcas de corte, sangria (3mm) e mancha gráfica A4
+        </label>
+      </div>
+    </section>
+
+    <div class="grafica-layout">
+      <!-- PAINEL LATERAL: ESTRUTURA DE PÁGINAS DA GRÁFICA -->
+      <aside class="grafica-sidebar" aria-label="Estrutura de Páginas da Gráfica">
+        <div class="grafica-sidebar__title">
+          <span>Páginas do Livro (A4)</span>
+          <span id="badgeTotalPaginas" style="font-size: 0.78rem; color: #64748b;">12 págs.</span>
+        </div>
+
+        <ul class="grafica-page-list" id="listaPaginasSidebar">
+          <!-- Gerado dinamicamente pelo modelo_grafica.js -->
+        </ul>
+
+        <div class="grafica-sidebar__add-group">
+          <button type="button" id="btnAddPaginaMiolo" class="grafica-btn grafica-btn--accent" style="width: 100%; justify-content: center;">
+            + Nova Página de Miolo (A4)
+          </button>
+          <button type="button" id="btnAddNovoCapitulo" class="grafica-btn grafica-btn--outline" style="width: 100%; justify-content: center;">
+            + Iniciar Novo Capítulo
+          </button>
+        </div>
+      </aside>
+
+      <!-- PALCO CENTRAL: VISUALIZAÇÃO E PREENCHIMENTO DAS FOLHAS A4 -->
+      <section class="grafica-stage">
+        <div class="grafica-toolbar">
+          <div class="grafica-toolbar__tools">
+            <span style="font-size: 0.82rem; font-weight: 700; color: var(--bg-nav);" id="indicadorPaginaAtual">
+              Página 1 — Capa Principal
+            </span>
+          </div>
+          <div class="grafica-toolbar__tools">
+            <button type="button" class="grafica-tool-btn" id="btnInserirTravessao" title="Inserir travessão de diálogo (—)">— Travessão</button>
+            <button type="button" class="grafica-tool-btn" id="btnRemoverPaginaMiolo" style="display: none; color: #b91c1c; border-color: #fecaca;">
+              Excluir Esta Página do Miolo
+            </button>
+          </div>
+        </div>
+
+        <!-- Container onde as folhas A4 são renderizadas -->
+        <div class="a4-sheets-container" id="a4SheetsContainer"></div>
+
+        <!-- Navegação Inferior Página a Página -->
+        <div class="grafica-nav-bottom" id="navPaginacaoInferior">
+          <button type="button" id="btnPaginaAnterior" class="grafica-btn grafica-btn--outline">
+            &larr; Página Anterior
+          </button>
+          <span id="statusPreenchimentoPagina" style="font-size: 0.85rem; font-weight: 600; color: #475569;">
+            Preencha todos os campos desta página
+          </span>
+          <button type="button" id="btnProximaPagina" class="grafica-btn grafica-btn--primary">
+            Próxima Página &rarr;
+          </button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div class="grafica-toast" id="graficaToast"></div>
+
+  <script id="dadosSalvosServidor" type="application/json">
+    {{ (dados_salvos or 'null') | safe }}
+  </script>
+  <script>
+    window.NOME_USUARIO_LOGADO = {{ (nome_usuario or 'Autor(a) BookShelf') | tojson }};
+  </script>
+  <script src="{{ url_for('static', filename='js/modelo_grafica.js') }}"></script>
+</body>
+</html>

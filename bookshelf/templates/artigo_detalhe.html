@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ artigo.titulo }} - BookShelf Artigos</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='estilogr.css') }}">
+</head>
+<body>
+
+  <!-- CABEÇALHO / NAVBAR GLOBAL -->
+  <nav class="navbar" aria-label="Navegação Principal">
+    <div class="navbar__top">
+      <a href="{{ url_for('index') }}" class="navbar__logo">BookShelf</a>
+
+      <div class="navbar__search-wrapper">
+        <form class="search-form" action="{{ url_for('artigos') }}" method="GET">
+          <input type="text" name="q" class="search-form__input" placeholder="Buscar ensaios ou opiniões..." aria-label="Pesquisar artigos">
+          <button type="submit" class="search-form__submit-btn" aria-label="Enviar busca">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1 6.53 6.53 0 0 0 1.398-1.4" fill="#FFFFFF"/>
+            </svg>
+          </button>
+        </form>
+
+        <div class="navbar__actions">
+          <a href="{{ url_for('biblioteca') }}" class="navbar__btn">Biblioteca</a>
+          {% if session.get('usuario_id') %}
+            <span class="navbar__user-greeting" style="color: #fff; font-size: 0.88rem; font-weight: 600;">Olá, {{ session.get('nome') or session.get('username') }}!</span>
+            <a href="{{ url_for('perfil') }}" class="navbar__btn">Meu Perfil</a>
+            <a href="{{ url_for('logout') }}" class="navbar__btn">Sair</a>
+          {% else %}
+            <a href="{{ url_for('login') }}" class="navbar__btn">Login</a>
+            <a href="{{ url_for('cadastro', modo='cadastro') }}" class="navbar__btn">Signup</a>
+          {% endif %}
+          <a href="{{ url_for('perfil') if session.get('usuario_id') else url_for('login') }}" class="navbar__user-icon-btn" aria-label="Ir para Perfil do Usuário" title="Meu Perfil">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Links de Navegação em Pílula -->
+    <ul class="navbar__pills">
+      <li><a href="{{ url_for('index') }}" class="navbar__pill-link">Home</a></li>
+      <li><a href="{{ url_for('lancamentos') }}" class="navbar__pill-link">Lançamentos</a></li>
+      <li><a href="{{ url_for('autores') }}" class="navbar__pill-link">Autores</a></li>
+      <li><a href="{{ url_for('artigos') }}" class="navbar__pill-link" style="background-color: var(--card-bg); color: #fff; font-weight: 700;">Artigos</a></li>
+      <li><a href="{{ url_for('modelo_grafica') }}" class="navbar__pill-link" style="background-color: var(--accent-blue); color: #fff;">Escrever Livro (Modelo Gráfica)</a></li>
+    </ul>
+  </nav>
+
+  <!-- LEITOR EDITORIAL DO ARTIGO -->
+  <main class="main-content" style="max-width: 860px; margin: 0 auto; padding: 24px 16px 60px;">
+
+    <!-- Voltar aos Artigos -->
+    <div style="margin-bottom: 20px;">
+      <a href="{{ url_for('artigos') }}" class="back-link">◀ Voltar para o Feed de Artigos de Opinião</a>
+    </div>
+
+    <article class="article-reader-paper">
+      <!-- Cabeçalho Editorial -->
+      <header class="article-reader-header">
+        <span class="article-category-tag" style="font-size: 0.8rem; padding: 4px 12px;">{{ artigo.categoria }}</span>
+        <h1 class="article-reader-title">{{ artigo.titulo }}</h1>
+        <p class="article-reader-subtitle">{{ artigo.subtitulo }}</p>
+
+        <!-- Barra do Autor -->
+        <div class="article-reader-author-bar">
+          <div class="article-reader-author-left">
+            <img src="{{ artigo.autor_foto }}"
+                 alt="Foto de {{ artigo.autor_nome }}"
+                 class="article-reader-author-img"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="article-author-avatar-fallback" style="display: none; width: 48px; height: 48px; font-size: 1.1rem;">
+              {{ artigo.autor_nome[:2]|upper }}
+            </div>
+            <div>
+              <strong class="article-reader-author-name">{{ artigo.autor_nome }}</strong>
+              <span class="article-reader-author-location">📍 {{ artigo.autor_origem }}</span>
+            </div>
+          </div>
+          <div class="article-reader-date-info">
+            <span>🗓️ {{ artigo.data_publicacao }}</span>
+            <span>⏱️ {{ artigo.tempo_leitura }}</span>
+          </div>
+        </div>
+
+        <!-- Barra de Ações Rápidas (Curtir / Compartilhar) -->
+        <div class="article-reader-action-toolbar">
+          <button type="button" class="btn-like-article" id="btnCurtirArtigo" onclick="curtirArtigo({{ artigo.id }})">
+            <span class="like-icon">👏</span>
+            <span id="contadorCurtidas">{{ artigo.curtidas }}</span> aplausos
+          </button>
+          <div class="article-tags-inline">
+            {% for t in artigo.tags %}
+              <span class="article-tag-chip">#{{ t }}</span>
+            {% endfor %}
+          </div>
+        </div>
+      </header>
+
+      <!-- Corpo do Artigo de Opinião -->
+      <div class="article-reader-body">
+        {{ artigo.conteudo_html|safe }}
+      </div>
+
+      <!-- Caixa Sobre o Autor no Rodapé do Artigo -->
+      <section class="article-author-bio-card">
+        <div class="article-author-bio-card__left">
+          <img src="{{ artigo.autor_foto }}" alt="Foto de {{ artigo.autor_nome }}" class="article-author-bio-card__img">
+        </div>
+        <div class="article-author-bio-card__right">
+          <span class="author-type-pill author-type-pill--comunidade" style="align-self: flex-start;">Autor no BookShelf</span>
+          <h3 class="article-author-bio-card__name">Escrito por {{ artigo.autor_nome }}</h3>
+          <p class="article-author-bio-card__desc">
+            Escritor e colunista na comunidade BookShelf, publicando ensaios e obras de própria autoria.
+          </p>
+          <div class="article-author-bio-card__actions">
+            <a href="{{ url_for('autores', q=artigo.autor_nome) }}" class="btn-author-bio" style="flex: none; padding: 7px 16px;">
+              Ver Perfil na Galeria de Autores
+            </a>
+            <a href="{{ url_for('biblioteca', q=artigo.autor_nome) }}" class="btn-author-read" style="flex: none; padding: 7px 16px;">
+              Explorar Livros do Autor
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- SEÇÃO DE COMENTÁRIOS E DEBATE DE OPINIÕES -->
+      <section class="article-comments-block">
+        <div class="article-comments-header">
+          <h3 class="article-comments-title">Debate & Opiniões dos Leitores ({{ artigo.comentarios|length }})</h3>
+          <span class="article-comments-note">Espaço aberto para debate crítico entre autores e leitores</span>
+        </div>
+
+        <!-- Formulário para envio de novo comentário -->
+        <form action="{{ url_for('comentar_artigo', id_artigo=artigo.id) }}" method="POST" class="add-comment-form">
+          <div class="form-group-editorial">
+            <textarea name="texto" rows="3" class="form-textarea-editorial" placeholder="Compartilhe seu ponto de vista ou contraponto sobre este artigo..." required></textarea>
+          </div>
+          <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
+            <button type="submit" class="btn-read-launch" style="background-color: #5E0B15; padding: 8px 20px; font-size: 0.85rem; border: none; cursor: pointer;">
+              Publicar Comentário no Debate
+            </button>
+          </div>
+        </form>
+
+        <!-- Lista de Comentários Mocados e Reais -->
+        <div class="article-comments-list">
+          {% for c in artigo.comentarios %}
+            <div class="article-comment-item">
+              <img src="{{ c.foto }}" alt="{{ c.autor }}" class="article-comment-avatar">
+              <div class="article-comment-bubble">
+                <div class="article-comment-top">
+                  <strong class="article-comment-author">{{ c.autor }}</strong>
+                  <span class="article-comment-time">{{ c.data }}</span>
+                </div>
+                <p class="article-comment-text">{{ c.texto }}</p>
+                <div class="article-comment-actions">
+                  <button type="button" class="btn-like-comment" onclick="this.classList.toggle('active')">
+                    👍 Concordo ({{ c.curtidas or 0 }})
+                  </button>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+
+    </article>
+
+    <!-- Outros Artigos Recomendados -->
+    {% if relacionados %}
+      <section style="margin-top: 40px;">
+        <h3 class="board-container__title" style="margin-bottom: 16px; font-size: 1.15rem;">Outros Ensaios & Artigos de Opinião Recomendados</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
+          {% for rel in relacionados %}
+            <div class="editorial-article-card" style="padding: 18px;">
+              <span class="article-category-tag" style="margin-bottom: 8px;">{{ rel.categoria }}</span>
+              <h4 style="font-size: 0.95rem; line-height: 1.35; margin-bottom: 6px;">
+                <a href="{{ url_for('detalhe_artigo', id_artigo=rel.id) }}" style="color: #1e293b; text-decoration: none;">{{ rel.titulo }}</a>
+              </h4>
+              <span style="font-size: 0.74rem; color: #64748b;">por {{ rel.autor_nome }} · {{ rel.tempo_leitura }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
+
+  </main>
+
+  <!-- RODAPÉ GLOBAL INSTITUCIONAL -->
+  <footer class="footer-global" role="contentinfo">
+    <div class="footer-global__container">
+
+      <!-- Bloco Institucional / Identidade -->
+      <div class="footer-global__col">
+        <h2 class="footer-global__title">BookShelf</h2>
+        <p class="footer-global__text">
+          Plataforma dedicada à difusão de conhecimento, literatura autoral e tecnologia editorial. Conectando leitores, escritores independentes e grandes obras do acervo universal.
+        </p>
+        <div class="footer-global__text" style="color: rgba(255,255,255,0.7); font-size: 0.85rem;">
+          <p>CNPJ: 12.345.678/0001-99 · Sede Editorial em Curitiba - PR</p>
+        </div>
+      </div>
+
+      <!-- Menu Institucional -->
+      <nav class="footer-global__col" aria-label="Links Institucionais">
+        <h3 class="footer-global__title">Institucional</h3>
+        <ul class="footer-global__list">
+          <li><a href="#" class="footer-global__link">Política de Privacidade</a></li>
+          <li><a href="#" class="footer-global__link">Termos de Uso</a></li>
+          <li><a href="#" class="footer-global__link">Ajuda e FAQ</a></li>
+          <li><a href="#" class="footer-global__link">Governança e LGPD</a></li>
+        </ul>
+      </nav>
+
+      <!-- Seção Fale Conosco -->
+      <div class="footer-global__col">
+        <h3 class="footer-global__title">Fale Conosco</h3>
+        <p class="footer-global__text">Suporte técnico aos leitores, atendimento a escritores e parcerias editoriais.</p>
+        <div style="display: flex; flex-direction: column; gap: 10px; align-items: flex-start;">
+          <a href="mailto:suporte@bookshelf.com" class="footer-global__btn" style="text-align: center; text-decoration: none;">Enviar E-mail</a>
+          <span class="footer-global__text" style="font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+            📞 0800 123 4567 <span style="font-weight: 400; font-size: 0.8rem; opacity: 0.8;">(Seg. a Sex. 9h às 18h)</span>
+          </span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Barra Inferior de Direitos -->
+    <div class="footer-global__bottom">
+      <span>© 2026 BookShelf S.A. Todos os direitos reservados.</span>
+      <span>Feito com paixão pela literatura e pelos autores independentes.</span>
+    </div>
+  </footer>
+
+  <script>
+    function curtirArtigo(idArtigo) {
+      const btn = document.getElementById('btnCurtirArtigo');
+      btn.disabled = true;
+      fetch('/api/artigo/' + idArtigo + '/curtir', { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+          if (data.ok) {
+            document.getElementById('contadorCurtidas').textContent = data.curtidas;
+            btn.classList.add('clapped');
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          setTimeout(() => { btn.disabled = false; }, 300);
+        });
+    }
+  </script>
+</body>
+</html>

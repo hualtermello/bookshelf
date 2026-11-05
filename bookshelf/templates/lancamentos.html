@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BookShelf - Lançamentos Autorais</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='estilogr.css') }}">
+</head>
+<body>
+
+  <!-- CABEÇALHO / NAVBAR GLOBAL -->
+  <nav class="navbar" aria-label="Navegação Principal">
+    <div class="navbar__top">
+      <!-- Logo Textual -->
+      <a href="{{ url_for('index') }}" class="navbar__logo">BookShelf</a>
+
+      <!-- Formulário de Busca na Navbar -->
+      <div class="navbar__search-wrapper">
+        <form class="search-form" action="{{ url_for('lancamentos') }}" method="GET">
+          <input type="text" name="q" value="{{ busca if busca else '' }}" class="search-form__input" placeholder="Buscar por autor ou livro..." aria-label="Pesquisar lançamentos">
+          <input type="hidden" name="genero" value="{{ genero_ativo }}">
+          <button type="submit" class="search-form__submit-btn" aria-label="Enviar busca">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1 6.53 6.53 0 0 0 1.398-1.4" fill="#FFFFFF"/>
+            </svg>
+          </button>
+        </form>
+
+        <!-- Botões de Autenticação e Perfil -->
+        <div class="navbar__actions">
+          <a href="{{ url_for('biblioteca') }}" class="navbar__btn">Biblioteca</a>
+          {% if session.get('usuario_id') %}
+            <span class="navbar__user-greeting" style="color: #fff; font-size: 0.88rem; font-weight: 600;">Olá, {{ session.get('nome') or session.get('username') }}!</span>
+            <a href="{{ url_for('perfil') }}" class="navbar__btn">Meu Perfil</a>
+            <a href="{{ url_for('logout') }}" class="navbar__btn">Sair</a>
+          {% else %}
+            <a href="{{ url_for('login') }}" class="navbar__btn">Login</a>
+            <a href="{{ url_for('cadastro', modo='cadastro') }}" class="navbar__btn">Signup</a>
+          {% endif %}
+          <a href="{{ url_for('perfil') if session.get('usuario_id') else url_for('login') }}" class="navbar__user-icon-btn" aria-label="Ir para Perfil do Usuário" title="Meu Perfil">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Links de Navegação em Pílula -->
+    <ul class="navbar__pills">
+      <li><a href="{{ url_for('index') }}" class="navbar__pill-link">Home</a></li>
+      <li><a href="{{ url_for('lancamentos') }}" class="navbar__pill-link" style="background-color: var(--card-bg); color: #fff; font-weight: 700;">Lançamentos</a></li>
+      <li><a href="{{ url_for('autores') }}" class="navbar__pill-link">Autores</a></li>
+      <li><a href="{{ url_for('artigos') }}" class="navbar__pill-link">Artigos</a></li>
+      <li><a href="{{ url_for('modelo_grafica') }}" class="navbar__pill-link" style="background-color: var(--accent-blue); color: #fff;">Escrever Livro (Modelo Gráfica)</a></li>
+    </ul>
+  </nav>
+
+  <!-- CONTEÚDO PRINCIPAL DE LANÇAMENTOS -->
+  <main class="main-content">
+
+    <!-- HERO SECTION DE LANÇAMENTOS -->
+    <section class="lancamentos-hero">
+      <div class="lancamentos-hero__badge">Vitrine Oficial de Obras Autorais</div>
+      <h1 class="lancamentos-hero__title">Lançamentos de Própria Autoria</h1>
+      <p class="lancamentos-hero__subtitle">
+        Conheça os novos livros escritos, revisados e lançados por autores independentes da comunidade BookShelf.
+        Obras autênticas de ficção e não-ficção nos gêneros <strong>Ação</strong>, <strong>Romance</strong>, <strong>Comédia</strong> e <strong>Documentários</strong>.
+      </p>
+
+      <!-- Métricas / Destaques Rápidos -->
+      <div class="lancamentos-stats">
+        <div class="lancamento-stat-card">
+          <span class="lancamento-stat-card__number">{{ contagens.todos }}</span>
+          <span class="lancamento-stat-card__label">Obras Autorais Lançadas</span>
+        </div>
+        <div class="lancamento-stat-card">
+          <span class="lancamento-stat-card__number">4</span>
+          <span class="lancamento-stat-card__label">Gêneros em Destaque</span>
+        </div>
+        <div class="lancamento-stat-card">
+          <span class="lancamento-stat-card__number">100%</span>
+          <span class="lancamento-stat-card__label">Escrita Independente</span>
+        </div>
+        <div class="lancamento-stat-card">
+          <span class="lancamento-stat-card__number">EPUB</span>
+          <span class="lancamento-stat-card__label">Pronto para Leitura Digital</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- BARRA DE CONTROLE: FILTRO POR GÊNERO E BUSCA -->
+    <section class="board-container" style="margin-bottom: 24px; padding: 20px 24px;">
+      <div class="lancamentos-filter-bar">
+        <div class="lancamentos-genre-tabs" role="tablist">
+          <a href="{{ url_for('lancamentos', genero='todos', q=busca) }}"
+             class="genre-tab {% if genero_ativo == 'todos' %}active{% endif %}">
+            <span class="genre-tab__name">Todos</span>
+            <span class="genre-tab__count">{{ contagens.todos }}</span>
+          </a>
+          <a href="{{ url_for('lancamentos', genero='acao', q=busca) }}"
+             class="genre-tab genre-tab--acao {% if genero_ativo == 'acao' %}active{% endif %}">
+            <span class="genre-tab__icon">💥</span>
+            <span class="genre-tab__name">Ação</span>
+            <span class="genre-tab__count">{{ contagens.acao }}</span>
+          </a>
+          <a href="{{ url_for('lancamentos', genero='romance', q=busca) }}"
+             class="genre-tab genre-tab--romance {% if genero_ativo == 'romance' %}active{% endif %}">
+            <span class="genre-tab__icon">💖</span>
+            <span class="genre-tab__name">Romance</span>
+            <span class="genre-tab__count">{{ contagens.romance }}</span>
+          </a>
+          <a href="{{ url_for('lancamentos', genero='comedia', q=busca) }}"
+             class="genre-tab genre-tab--comedia {% if genero_ativo == 'comedia' %}active{% endif %}">
+            <span class="genre-tab__icon">😂</span>
+            <span class="genre-tab__name">Comédia</span>
+            <span class="genre-tab__count">{{ contagens.comedia }}</span>
+          </a>
+          <a href="{{ url_for('lancamentos', genero='documentario', q=busca) }}"
+             class="genre-tab genre-tab--doc {% if genero_ativo == 'documentario' %}active{% endif %}">
+            <span class="genre-tab__icon">📜</span>
+            <span class="genre-tab__name">Documentários</span>
+            <span class="genre-tab__count">{{ contagens.documentario }}</span>
+          </a>
+        </div>
+
+        {% if busca %}
+          <div class="lancamentos-search-feedback">
+            Filtrando por: <strong>"{{ busca }}"</strong>
+            <a href="{{ url_for('lancamentos', genero=genero_ativo) }}" class="lancamentos-clear-search">Limpar busca ✕</a>
+          </div>
+        {% endif %}
+      </div>
+    </section>
+
+    <!-- GRADE DE CARDS DOS LANÇAMENTOS AUTORAIS -->
+    <section class="board-container">
+      <div class="lancamentos-grid-header">
+        <h2 class="board-container__title" style="margin-bottom: 0;">
+          {% if genero_ativo == 'todos' %}
+            Todas as Obras Autorais em Destaque
+          {% elif genero_ativo == 'acao' %}
+            Lançamentos de Ação & Suspense
+          {% elif genero_ativo == 'romance' %}
+            Lançamentos de Romance & Afeto
+          {% elif genero_ativo == 'comedia' %}
+            Lançamentos de Comédia & Crônica Humorística
+          {% elif genero_ativo == 'documentario' %}
+            Lançamentos Documentais & Memória Histórica
+          {% endif %}
+        </h2>
+        <span class="lancamentos-grid-counter">{{ lancamentos|length }} resultado(s) encontrado(s)</span>
+      </div>
+
+      {% if lancamentos %}
+        <div class="lancamentos-cards-grid">
+          {% for livro in lancamentos %}
+            <article class="author-release-card" data-genre="{{ livro.genero }}">
+              <!-- Cabeçalho do Card: Informações do Autor -->
+              <header class="author-release-card__author-header">
+                <div class="author-avatar-badge">
+                  <div class="author-avatar-badge__circle" style="background-color: {{ livro.cor_tema }};">
+                    {{ livro.autor[:2]|upper }}
+                  </div>
+                  <div class="author-avatar-badge__details">
+                    <h3 class="author-name">{{ livro.autor }}</h3>
+                    <span class="author-city">{{ livro.autor_cidade }}</span>
+                  </div>
+                </div>
+                <div class="author-verified-tag" title="Obra escrita e publicada de própria autoria">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <span>Obra de Própria Autoria</span>
+                </div>
+              </header>
+
+              <!-- Corpo do Card: Capa Estilizada e Dados da Obra -->
+              <div class="author-release-card__body">
+                <div class="book-mini-cover" style="{% if livro.capa_imagem %}background-image: url('{{ livro.capa_imagem }}');{% else %}background: linear-gradient(135deg, {{ livro.cor_tema }} 0%, #1e293b 100%);{% endif %}">
+                  <div class="book-mini-cover__overlay"></div>
+                  <span class="book-mini-cover__genre-tag">{{ livro.genero_label }}</span>
+                  <div class="book-mini-cover__spine"></div>
+                  <div class="book-mini-cover__content">
+                    <span class="book-mini-cover__title">{{ livro.titulo }}</span>
+                    <span class="book-mini-cover__author">{{ livro.autor }}</span>
+                  </div>
+                  <div class="book-mini-cover__year">{{ livro.ano }}</div>
+                </div>
+
+                <div class="author-release-card__content">
+                  <div class="book-badges-row">
+                    {% for badge in livro.badges %}
+                      <span class="book-badge" style="border-color: {{ livro.cor_tema }}; color: {{ livro.cor_tema }};">{{ badge }}</span>
+                    {% endfor %}
+                  </div>
+
+                  <h4 class="book-release-title">{{ livro.titulo }}</h4>
+                  <p class="book-release-subtitle">{{ livro.subtitulo }}</p>
+
+                  <div class="book-release-meta-strip">
+                    <span title="Data de lançamento oficial">🗓️ {{ livro.data_lancamento }}</span>
+                    <span title="Número de páginas">📄 {{ livro.paginas }} pág.</span>
+                    <span title="Tempo médio de leitura">⏱️ {{ livro.tempo_leitura }}</span>
+                    <span title="Avaliação da comunidade">⭐ {{ livro.avaliacao }} ({{ livro.total_avaliacoes }})</span>
+                  </div>
+
+                  <p class="book-release-synopsis-preview">
+                    {{ livro.sinopse }}
+                  </p>
+
+                  <!-- Citação / Nota do Autor -->
+                  <div class="author-quote-box" style="border-left-color: {{ livro.cor_tema }};">
+                    <span class="author-quote-label">Nota do Autor(a):</span>
+                    <p class="author-quote-text">“{{ livro.nota_autor }}”</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Rodapé de Ações do Card -->
+              <footer class="author-release-card__footer">
+                <button type="button"
+                        class="btn-view-details"
+                        onclick="abrirModalDetalhes({{ livro.id }})"
+                        data-id="{{ livro.id }}">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                  Ver Ficha Completa
+                </button>
+
+                <a href="{{ url_for('descricao_livro') }}" class="btn-read-launch" style="background-color: {{ livro.cor_tema }};">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+                  Explorar Livro
+                </a>
+              </footer>
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="lancamentos-empty-state">
+          <p>Nenhum lançamento autoral encontrado com os filtros selecionados.</p>
+          <a href="{{ url_for('lancamentos') }}" class="navbar__btn" style="display: inline-block; margin-top: 12px;">Ver todos os lançamentos</a>
+        </div>
+      {% endif %}
+    </section>
+
+    <!-- SEÇÃO CTA: INCENTIVO À PUBLICAÇÃO AUTORAL NO MODELO GRÁFICA -->
+    <section class="author-cta-banner">
+      <div class="author-cta-banner__content">
+        <span class="author-cta-banner__tag">Sua Vez de Lançar</span>
+        <h2 class="author-cta-banner__title">Escreva e publique seu próprio livro no BookShelf</h2>
+        <p class="author-cta-banner__text">
+          Utilize nosso editor exclusivo baseado no padrão oficial de gráfica (formato A4 com capas, pré-textuais, miolo e colofão técnico).
+          Produza seu romance, livro de ação, comédia ou documentário de forma 100% autoral e independente!
+        </p>
+        <div class="author-cta-banner__actions">
+          <a href="{{ url_for('modelo_grafica') }}" class="author-cta-banner__btn-primary">
+            Escrever Livro no Modelo Gráfica A4
+          </a>
+          <a href="{{ url_for('perfil') }}" class="author-cta-banner__btn-secondary">
+            Acessar Minha Prateleira
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL DE DETALHES COMPLETOS E NOTA DO AUTOR -->
+  <div id="modalDetalhes" class="modal-lancamento-backdrop" aria-hidden="true" onclick="fecharModalSeClicarFora(event)">
+    <div class="modal-lancamento-card" role="dialog" aria-modal="true" aria-labelledby="modalTitulo">
+      <button class="modal-lancamento-close" onclick="fecharModalDetalhes()" aria-label="Fechar janela">✕</button>
+
+      <div class="modal-lancamento-header">
+        <span id="modalGeneroBadge" class="modal-genre-badge">Gênero</span>
+        <h2 id="modalTitulo" class="modal-book-title">Título do Livro</h2>
+        <p id="modalSubtitulo" class="modal-book-subtitle">Subtítulo</p>
+      </div>
+
+      <div style="display: flex; gap: 20px; align-items: center; margin-bottom: 20px;">
+        <img id="modalCapaImg" src="" alt="Capa" style="width: 90px; height: 135px; object-fit: cover; border-radius: 8px; box-shadow: 0 6px 16px rgba(0,0,0,0.3); flex-shrink: 0; display: none;">
+        <div class="modal-lancamento-author-row" style="margin-bottom: 0; flex: 1;">
+          <div id="modalAvatar" class="modal-author-avatar">AV</div>
+          <div>
+            <h3 id="modalAutorNome" class="modal-author-name">Nome do Autor</h3>
+            <span id="modalAutorCidade" class="modal-author-city">Cidade / Estado</span>
+            <p id="modalAutorBio" class="modal-author-bio">Biografia do autor...</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-specs-grid">
+        <div class="modal-spec-item">
+          <span class="spec-label">Data de Lançamento</span>
+          <span id="modalDataLancamento" class="spec-val">-</span>
+        </div>
+        <div class="modal-spec-item">
+          <span class="spec-label">Páginas</span>
+          <span id="modalPaginas" class="spec-val">-</span>
+        </div>
+        <div class="modal-spec-item">
+          <span class="spec-label">Tempo de Leitura</span>
+          <span id="modalTempo" class="spec-val">-</span>
+        </div>
+        <div class="modal-spec-item">
+          <span class="spec-label">Formato Digital</span>
+          <span id="modalFormato" class="spec-val">EPUB</span>
+        </div>
+      </div>
+
+      <div class="modal-section">
+        <h4 class="modal-section-title">Sinopse Completa da Obra</h4>
+        <p id="modalSinopse" class="modal-text-content"></p>
+      </div>
+
+      <div class="modal-section modal-section--quote">
+        <h4 class="modal-section-title">Depoimento do Autor sobre a Obra de Própria Autoria</h4>
+        <p id="modalNotaAutor" class="modal-quote-content"></p>
+      </div>
+
+      <div class="modal-lancamento-actions">
+        <button type="button" class="btn-secondary" onclick="fecharModalDetalhes()">Fechar</button>
+        <a id="modalLinkLeitura" href="{{ url_for('descricao_livro') }}" class="btn-primary">Ver na Biblioteca</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- RODAPÉ GLOBAL INSTITUCIONAL -->
+  <footer class="footer-global" role="contentinfo">
+    <div class="footer-global__container">
+
+      <!-- Bloco Institucional / Identidade -->
+      <div class="footer-global__col">
+        <h2 class="footer-global__title">BookShelf</h2>
+        <p class="footer-global__text">
+          Plataforma dedicada à difusão de conhecimento, literatura autoral e tecnologia editorial. Conectando leitores, escritores independentes e grandes obras do acervo universal.
+        </p>
+        <div class="footer-global__text" style="color: rgba(255,255,255,0.7); font-size: 0.85rem;">
+          <p>CNPJ: 12.345.678/0001-99 · Sede Editorial em Curitiba - PR</p>
+        </div>
+      </div>
+
+      <!-- Menu Institucional -->
+      <nav class="footer-global__col" aria-label="Links Institucionais">
+        <h3 class="footer-global__title">Institucional</h3>
+        <ul class="footer-global__list">
+          <li><a href="#" class="footer-global__link">Política de Privacidade</a></li>
+          <li><a href="#" class="footer-global__link">Termos de Uso</a></li>
+          <li><a href="#" class="footer-global__link">Ajuda e FAQ</a></li>
+          <li><a href="#" class="footer-global__link">Governança e LGPD</a></li>
+        </ul>
+      </nav>
+
+      <!-- Seção Fale Conosco -->
+      <div class="footer-global__col">
+        <h3 class="footer-global__title">Fale Conosco</h3>
+        <p class="footer-global__text">Suporte técnico aos leitores, atendimento a escritores e parcerias editoriais.</p>
+        <div style="display: flex; flex-direction: column; gap: 10px; align-items: flex-start;">
+          <a href="mailto:suporte@bookshelf.com" class="footer-global__btn" style="text-align: center; text-decoration: none;">Enviar E-mail</a>
+          <span class="footer-global__text" style="font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+            📞 0800 123 4567 <span style="font-weight: 400; font-size: 0.8rem; opacity: 0.8;">(Seg. a Sex. 9h às 18h)</span>
+          </span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Barra Inferior de Direitos -->
+    <div class="footer-global__bottom">
+      <span>© 2026 BookShelf S.A. Todos os direitos reservados.</span>
+      <span>Feito com paixão pela literatura e pelos autores independentes.</span>
+    </div>
+  </footer>
+
+  <!-- DADOS EMBUTIDOS PARA INTERAÇÃO JS DO MODAL -->
+  <script>
+    const DADOS_LANCAMENTOS = {{ lancamentos|tojson|safe }};
+
+    function abrirModalDetalhes(idLivro) {
+      const livro = DADOS_LANCAMENTOS.find(l => l.id === idLivro);
+      if (!livro) return;
+
+      document.getElementById('modalTitulo').textContent = livro.titulo;
+      document.getElementById('modalSubtitulo').textContent = livro.subtitulo;
+      document.getElementById('modalGeneroBadge').textContent = livro.genero_label;
+      document.getElementById('modalGeneroBadge').style.backgroundColor = livro.cor_tema;
+
+      const capaImgEl = document.getElementById('modalCapaImg');
+      if (capaImgEl) {
+        if (livro.capa_imagem) {
+          capaImgEl.src = livro.capa_imagem;
+          capaImgEl.style.display = 'block';
+        } else {
+          capaImgEl.style.display = 'none';
+        }
+      }
+
+      const avatarEl = document.getElementById('modalAvatar');
+      avatarEl.textContent = livro.autor.substring(0, 2).toUpperCase();
+      avatarEl.style.backgroundColor = livro.cor_tema;
+
+      document.getElementById('modalAutorNome').textContent = livro.autor;
+      document.getElementById('modalAutorCidade').textContent = livro.autor_cidade;
+      document.getElementById('modalAutorBio').textContent = livro.autor_bio;
+
+      document.getElementById('modalDataLancamento').textContent = livro.data_lancamento;
+      document.getElementById('modalPaginas').textContent = livro.paginas + ' páginas';
+      document.getElementById('modalTempo').textContent = livro.tempo_leitura;
+      document.getElementById('modalFormato').textContent = livro.formato;
+
+      document.getElementById('modalSinopse').textContent = livro.sinopse;
+      document.getElementById('modalNotaAutor').textContent = '“' + livro.nota_autor + '”';
+
+      const modal = document.getElementById('modalDetalhes');
+      modal.classList.add('active');
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function fecharModalDetalhes() {
+      const modal = document.getElementById('modalDetalhes');
+      modal.classList.remove('active');
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    }
+
+    function fecharModalSeClicarFora(event) {
+      if (event.target.id === 'modalDetalhes') {
+        fecharModalDetalhes();
+      }
+    }
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        fecharModalDetalhes();
+      }
+    });
+  </script>
+</body>
+</html>
