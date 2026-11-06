@@ -1599,7 +1599,7 @@ def index():
         ][:3]
 
     return render_template(
-        'home.html',
+        ['home.html', 'index.html'],
         livros=livros_filtrados,
         suas_literaturas=suas_literaturas_filtradas,
         busca=busca,
@@ -2170,8 +2170,9 @@ def gerar_epub_de_modelo_grafica(caminho_destino, dados):
 @app.route('/escrever')
 def modelo_grafica():
     dados_salvos = None
+    usuario_logado = 'usuario_id' in session
     nome_usuario = session.get('nome') or session.get('username', 'Autor(a) BookShelf')
-    if 'usuario_id' in session:
+    if usuario_logado:
         try:
             cursor = mysql.connection.cursor()
             cursor.execute(
@@ -2187,7 +2188,8 @@ def modelo_grafica():
     return render_template(
         'modelo_grafica.html',
         dados_salvos=dados_salvos,
-        nome_usuario=nome_usuario
+        nome_usuario=nome_usuario,
+        usuario_logado=usuario_logado
     )
 
 
@@ -2196,10 +2198,10 @@ def salvar_modelo_grafica():
     dados = request.get_json(silent=True) or {}
     if 'usuario_id' not in session:
         return jsonify({
-            'ok': True,
-            'local_only': True,
-            'mensagem': 'Modelo salvo localmente no navegador (faça login para salvar também no MySQL).'
-        })
+            'ok': False,
+            'precisa_login': True,
+            'mensagem': 'Você precisa estar logado para salvar seu livro no BookShelf.'
+        }), 401
     meta = dados.get('meta', {})
     titulo = (meta.get('titulo') or 'Livro em Elaboração').strip()[:255]
     autor = (meta.get('autor') or session.get('nome') or session.get('username', 'Autor')).strip()[:255]
@@ -2225,6 +2227,12 @@ def salvar_modelo_grafica():
 
 @app.route('/api/modelo-grafica/publicar', methods=['POST'])
 def publicar_modelo_grafica():
+    if 'usuario_id' not in session:
+        return jsonify({
+            'ok': False,
+            'precisa_login': True,
+            'erro': 'Você precisa estar logado para publicar uma obra na plataforma.'
+        }), 401
     dados = request.get_json(silent=True) or {}
     meta = dados.get('meta', {})
     titulo = (meta.get('titulo') or '').strip()[:255]

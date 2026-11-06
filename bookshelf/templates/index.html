@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BookShelf - Início</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='estilogr.css') }}">
+
+</head>
+<body>
+
+  <!-- CABEÇALHO / NAVBAR GLOBAL -->
+  <nav class="navbar" aria-label="Navegação Principal">
+    <div class="navbar__top">
+      <!-- Logo Textual -->
+      <a href="{{ url_for('index') }}" class="navbar__logo">BookShelf</a>
+
+      <!-- Formulário de Busca com Categorias -->
+      <div class="navbar__search-wrapper">
+        <form class="search-form" action="{{ url_for('index') }}" method="GET">
+          <input type="text" name="q" value="{{ busca if busca else '' }}" class="search-form__input" placeholder="Buscar livros, autores, lançamentos, artigos..." aria-label="Pesquisar livros">
+
+          <div class="search-form__select-group">
+            <select name="category" class="search-form__select" aria-label="Selecionar categoria">
+              <option value="todos" {% if not categoria_ativa or categoria_ativa == 'todos' %}selected{% endif %}>Todos</option>
+              <option value="livros" {% if categoria_ativa == 'livros' or categoria_ativa == 'titulos' %}selected{% endif %}>Livros & Obras</option>
+              <option value="autores" {% if categoria_ativa == 'autores' %}selected{% endif %}>Autores</option>
+              <option value="lancamentos" {% if categoria_ativa == 'lancamentos' %}selected{% endif %}>Lançamentos</option>
+              <option value="artigos" {% if categoria_ativa == 'artigos' %}selected{% endif %}>Artigos</option>
+            </select>
+          </div>
+
+          <button type="submit" class="search-form__submit-btn" aria-label="Enviar busca">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1 6.53 6.53 0 0 0 1.398-1.4" fill="#FFFFFF"/>
+            </svg>
+          </button>
+        </form>
+
+        <!-- Botões de Autenticação e Perfil -->
+        <div class="navbar__actions">
+          <a href="{{ url_for('biblioteca') }}" class="navbar__btn">Explore</a>
+          {% if session.get('usuario_id') %}
+            <span class="navbar__user-greeting" style="color: #fff; font-size: 0.88rem; font-weight: 600;">Olá, {{ session.get('nome') or session.get('username') }}!</span>
+            <a href="{{ url_for('perfil') }}" class="navbar__btn">Meu Perfil</a>
+            <a href="{{ url_for('logout') }}" class="navbar__btn">Sair</a>
+          {% else %}
+            <a href="{{ url_for('login') }}" class="navbar__btn">Login</a>
+            <a href="{{ url_for('cadastro', modo='cadastro') }}" class="navbar__btn">Signup</a>
+          {% endif %}
+          <!-- Botão dedicado com ícone de Usuário para alternar ao Perfil -->
+          <a href="{{ url_for('perfil') if session.get('usuario_id') else url_for('login') }}" class="navbar__user-icon-btn" id="userProfileToggle" aria-label="Ir para Perfil do Usuário" title="Meu Perfil">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Links de Navegação em Pílula -->
+    <ul class="navbar__pills">
+      <li><a href="{{ url_for('index') }}" class="navbar__pill-link">Home</a></li>
+      <li><a href="{{ url_for('lancamentos') }}" class="navbar__pill-link">Lançamentos</a></li>
+      <li><a href="{{ url_for('autores') }}" class="navbar__pill-link">Autores</a></li>
+      <li><a href="{{ url_for('artigos') }}" class="navbar__pill-link">Artigos</a></li>
+      <li><a href="{{ url_for('modelo_grafica') }}" class="navbar__pill-link" style="background-color: var(--accent-blue); color: #fff;">Escrever Livro (Modelo Gráfica)</a></li>
+    </ul>
+  </nav>
+
+  <!-- CONTEÚDO PRINCIPAL -->
+  <main class="main-content">
+
+    <!-- FEEDBACK DE BUSCA GLOBAL -->
+    {% if busca %}
+      <section class="board-container" style="margin-bottom: 24px; padding: 18px 24px;">
+        <div class="lancamentos-search-feedback" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <span style="font-size: 1.05rem;">Resultados da pesquisa por: <strong style="color: #FDE68A;">"{{ busca }}"</strong></span>
+            <span style="color: rgba(255,255,255,0.75); font-size: 0.9rem; margin-left: 10px;">
+              ({{ (suas_literaturas|length) + (livros|length) }} obra(s) encontrada(s){% if autores_encontrados %}, {{ autores_encontrados|length }} autor(es){% endif %}{% if artigos_encontrados %}, {{ artigos_encontrados|length }} artigo(s){% endif %})
+            </span>
+          </div>
+          <a href="{{ url_for('index') }}" class="lancamentos-clear-search">Limpar busca ✕</a>
+        </div>
+      </section>
+    {% endif %}
+
+    <!-- Seção 1: Suas Literaturas (Carrossel com os 6 livros exigidos) -->
+    <section class="board-container">
+      <h2 class="board-container__title">suas literaturas</h2>
+      {% if suas_literaturas %}
+      <div class="carousel">
+        <button class="carousel__nav-btn carousel__nav-btn--prev" aria-label="Anterior">&lt;</button>
+
+        <div class="carousel__track">
+
+          {% for l in suas_literaturas %}
+          <article class="book-card">
+            <div class="book-card__badge" aria-hidden="true">{{ l.porcentagem or '100%' }}</div>
+            <a href="{{ url_for('descricao_livro') }}" class="book-card__cover" style="display: block; position: relative;" title="{{ l.titulo }}">
+              <img src="{{ l.capa }}" alt="Capa de {{ l.titulo }}" class="book-card__cover-img" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+              <div class="cover-grid" style="display: none;"></div>
+            </a>
+            <header class="book-card__header"><h3 class="book-card__title">{{ l.titulo }}</h3></header>
+            <div class="book-card__tracker">
+              <input type="range" class="book-card__range" min="0" max="{{ l.paginas_total }}" value="{{ l.paginas_atuais }}">
+              <output class="book-card__count">{{ l.paginas_atuais }} / {{ l.paginas_total }} pág.</output>
+            </div>
+            <footer class="book-card__actions">
+              <div class="book-card__actions-buttons">
+                <button type="button" class="book-card__action-btn book-card__action-btn--like {% if l.curtido %}is-active{% endif %}" title="Curtir (Like)" aria-label="Curtir" onclick="toggleBookLike(this, event)">
+                  <svg viewBox="0 0 24 24" class="book-card__icon-heart"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l8.72-8.72 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                </button>
+                <button type="button" class="book-card__action-btn book-card__action-btn--fav {% if l.favorito %}is-active{% endif %}" title="Favoritar este livro" aria-label="Favoritar" onclick="toggleBookFav(this, event)">
+                  <svg viewBox="0 0 24 24" class="book-card__icon-fav">
+                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
+                    <polygon points="12,7 13.1,9.3 15.6,9.6 13.8,11.3 14.3,13.7 12,12.5 9.7,13.7 10.2,11.3 8.4,9.6 10.9,9.3" class="fav-star"></polygon>
+                  </svg>
+                </button>
+              </div>
+              <div class="book-card__reading-time" title="Você passou {{ l.tempo_leitura or '1h 45m' }} lendo este livro" onclick="mostrarTempoLeitura('{{ l.titulo }}', '{{ l.tempo_leitura or '1h 45m' }}', event)">
+                <svg viewBox="0 0 24 24" class="book-card__icon-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <span class="book-card__reading-time-val">{{ l.tempo_leitura or '1h 45m' }}</span>
+              </div>
+            </footer>
+          </article>
+          {% endfor %}
+
+        </div>
+
+        <button class="carousel__nav-btn carousel__nav-btn--next" aria-label="Próximo">&gt;</button>
+      </div>
+      {% else %}
+        <p style="color: rgba(255,255,255,0.7); font-style: italic; padding: 18px 0; font-size: 0.95rem;">Nenhuma literatura em sua estante corresponde a "<strong>{{ busca }}</strong>".</p>
+      {% endif %}
+    </section>
+
+    <!-- Seção 2: Sugestões de Novos Livros -->
+    <section class="board-container">
+      <h2 class="board-container__title">{% if busca %}obras e lançamentos encontrados{% else %}novas recomendações{% endif %}</h2>
+      {% if livros %}
+      <div class="carousel">
+        <button class="carousel__nav-btn carousel__nav-btn--prev">&lt;</button>
+        <div class="carousel__track">
+          <!-- Cards adicionais de sugestão seguindo o mesmo padrão com capas fictícias -->
+            {% for l in livros %}
+              <article class="book-card">
+                <div class="book-card__badge" aria-hidden="true">100%</div>
+                <a href="{{ url_for('descricao_livro', id_livro=l.id) }}" class="book-card__cover" style="display: block; position: relative;" title="{{ l.titulo }}">
+                  {% if l.capa_imagem %}
+                    <img src="{{ l.capa_imagem }}" alt="Capa de {{ l.titulo }}" class="book-card__cover-img" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <div class="cover-grid" style="display: none;"></div>
+                  {% else %}
+                    <div class="cover-grid"></div>
+                  {% endif %}
+                </a>
+                <header class="book-card__header"><h3 class="book-card__title" title="{{ l.titulo }}">{{ l.titulo }}</h3></header>
+                <div class="book-card__tracker">
+                  <input type="range" class="book-card__range" min="0" max="100" value="100">
+                  <output class="book-card__count">{{ l.formato or 'EPUB' }}</output>
+                </div>
+                <footer class="book-card__actions">
+                  <div class="book-card__actions-buttons">
+                    <button type="button" class="book-card__action-btn book-card__action-btn--like {% if l.curtido %}is-active{% endif %}" title="Curtir (Like)" aria-label="Curtir" onclick="toggleBookLike(this, event)">
+                      <svg viewBox="0 0 24 24" class="book-card__icon-heart"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l8.72-8.72 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                    </button>
+                    <button type="button" class="book-card__action-btn book-card__action-btn--fav {% if l.favorito %}is-active{% endif %}" title="Favoritar este livro" aria-label="Favoritar" onclick="toggleBookFav(this, event)">
+                      <svg viewBox="0 0 24 24" class="book-card__icon-fav">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
+                        <polygon points="12,7 13.1,9.3 15.6,9.6 13.8,11.3 14.3,13.7 12,12.5 9.7,13.7 10.2,11.3 8.4,9.6 10.9,9.3" class="fav-star"></polygon>
+                      </svg>
+                    </button>
+                  </div>
+                  <div class="book-card__reading-time" title="Você passou {{ l.tempo_leitura or '1h 30m' }} lendo este livro" onclick="mostrarTempoLeitura('{{ l.titulo }}', '{{ l.tempo_leitura or '1h 30m' }}', event)">
+                    <svg viewBox="0 0 24 24" class="book-card__icon-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    <span class="book-card__reading-time-val">{{ l.tempo_leitura or '1h 30m' }}</span>
+                  </div>
+                </footer>
+              </article>
+            {% endfor %}
+        </div>
+        <button class="carousel__nav-btn carousel__nav-btn--next">&gt;</button>
+      </div>
+      {% else %}
+        <p style="color: rgba(255,255,255,0.7); font-style: italic; padding: 18px 0; font-size: 0.95rem;">Nenhuma obra do acervo ou lançamentos corresponde a "<strong>{{ busca }}</strong>".</p>
+      {% endif %}
+    </section>
+
+    <!-- Seção 3: Autores Encontrados (se a busca corresponder a algum autor mocado) -->
+    {% if autores_encontrados %}
+      <section class="board-container" style="margin-top: 24px;">
+        <h2 class="board-container__title">autores encontrados</h2>
+        <div style="display: flex; gap: 16px; flex-wrap: wrap; padding-top: 6px;">
+          {% for a in autores_encontrados %}
+            <a href="{{ url_for('autores', q=a.nome) }}" style="display: flex; align-items: center; gap: 14px; background: rgba(0,0,0,0.28); padding: 12px 18px; border-radius: 12px; text-decoration: none; color: #fff; border: 1px solid rgba(255,255,255,0.12); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+              <span style="font-size: 1.6rem;">✍️</span>
+              <div>
+                <strong style="display: block; font-size: 1rem; color: #FDE68A;">{{ a.nome }}</strong>
+                <span style="font-size: 0.85rem; color: #38bdf8;">{{ a.origem }} · {{ a.tipo|capitalize }}</span>
+              </div>
+            </a>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
+
+    <!-- Seção 4: Artigos Encontrados (se a busca corresponder a algum artigo mocado) -->
+    {% if artigos_encontrados %}
+      <section class="board-container" style="margin-top: 24px;">
+        <h2 class="board-container__title">artigos e ensaios encontrados</h2>
+        <div style="display: flex; gap: 16px; flex-wrap: wrap; padding-top: 6px;">
+          {% for art in artigos_encontrados %}
+            <a href="{{ url_for('detalhe_artigo', id_artigo=art.id) }}" style="display: flex; flex-direction: column; gap: 6px; background: rgba(0,0,0,0.28); padding: 14px 20px; border-radius: 12px; text-decoration: none; color: #fff; border: 1px solid rgba(255,255,255,0.12); max-width: 380px; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+              <span style="font-size: 0.8rem; color: #38bdf8; font-weight: 700; text-transform: uppercase;">{{ art.categoria }}</span>
+              <strong style="font-size: 1rem; color: #FDE68A; line-height: 1.3;">{{ art.titulo }}</strong>
+              <span style="font-size: 0.85rem; color: rgba(255,255,255,0.7);">Por {{ art.autor_nome }} · {{ art.tempo_leitura }}</span>
+            </a>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
+
+    <!-- Seção 5: Estado Vazio Total se nada for encontrado -->
+    {% if busca and not suas_literaturas and not livros and not autores_encontrados and not artigos_encontrados %}
+      <section class="board-container" style="padding: 48px 24px; text-align: center; margin-top: 24px;">
+        <p style="font-size: 1.15rem; color: #fff; margin-bottom: 16px;">
+          Nenhum livro, autor ou artigo encontrado para "<strong>{{ busca }}</strong>".
+        </p>
+        <a href="{{ url_for('index') }}" class="navbar__btn" style="display: inline-block;">Ver todo o acervo</a>
+      </section>
+    {% endif %}
+
+  </main>
+
+  <!-- RODAPÉ GLOBAL INSTITUCIONAL -->
+  <footer class="footer-global" role="contentinfo">
+    <div class="footer-global__container">
+
+      <!-- Bloco Institucional / Identidade -->
+      <div class="footer-global__col">
+        <h2 class="footer-global__title">BookShelf</h2>
+        <p class="footer-global__text">
+          Plataforma dedicada à difusão de conhecimento, literatura autoral e tecnologia editorial. Conectando leitores, escritores independentes e grandes obras do acervo universal.
+        </p>
+        <div class="footer-global__text" style="color: rgba(255,255,255,0.7); font-size: 0.85rem;">
+          <p>CNPJ: 12.345.678/0001-99 · Sede Editorial em Curitiba - PR</p>
+        </div>
+      </div>
+
+      <!-- Menu Institucional -->
+      <nav class="footer-global__col" aria-label="Links Institucionais">
+        <h3 class="footer-global__title">Institucional</h3>
+        <ul class="footer-global__list">
+          <li><a href="#" class="footer-global__link">Política de Privacidade</a></li>
+          <li><a href="#" class="footer-global__link">Termos de Uso</a></li>
+          <li><a href="#" class="footer-global__link">Ajuda e FAQ</a></li>
+          <li><a href="#" class="footer-global__link">Governança e LGPD</a></li>
+        </ul>
+      </nav>
+
+      <!-- Seção Fale Conosco -->
+      <div class="footer-global__col">
+        <h3 class="footer-global__title">Fale Conosco</h3>
+        <p class="footer-global__text">Suporte técnico aos leitores, atendimento a escritores e parcerias editoriais.</p>
+        <div style="display: flex; flex-direction: column; gap: 10px; align-items: flex-start;">
+          <a href="mailto:suporte@bookshelf.com" class="footer-global__btn" style="text-align: center; text-decoration: none;">Enviar E-mail</a>
+          <span class="footer-global__text" style="font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+            📞 0800 123 4567 <span style="font-weight: 400; font-size: 0.8rem; opacity: 0.8;">(Seg. a Sex. 9h às 18h)</span>
+          </span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Barra Inferior de Direitos -->
+    <div class="footer-global__bottom">
+      <span>© 2026 BookShelf S.A. Todos os direitos reservados.</span>
+      <span>Feito com paixão pela literatura e pelos autores independentes.</span>
+    </div>
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/cadastrojs.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/homejs.js') }}"></script>
+</body>
+</html>

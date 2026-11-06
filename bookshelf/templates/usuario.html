@@ -15,12 +15,12 @@
 
       <div class="navbar__search-wrapper">
         <form class="search-form" action="{{ url_for('perfil') }}" method="GET">
-          <input type="text" name="q" value="{{ busca if busca else '' }}" class="search-form__input" placeholder="Search" aria-label="Pesquisar">
+          <input type="text" name="q" value="{{ busca if busca else '' }}" class="search-form__input" placeholder="Buscar na estante de livros..." aria-label="Pesquisar">
           <div class="search-form__select-group">
-            <select name="category" class="search-form__select">
-              <option value="todos">todos</option>
-              <option value="autores">autores</option>
-              <option value="titulos">títulos</option>
+            <select name="category" class="search-form__select" aria-label="Filtrar categoria">
+              <option value="todos">Todos</option>
+              <option value="autores">Autores</option>
+              <option value="titulos">Títulos</option>
             </select>
           </div>
           <button type="submit" class="search-form__submit-btn" aria-label="Buscar">
@@ -161,11 +161,11 @@
 
     <!-- Formulário de Contato Específico do Perfil -->
     <section class="board-container">
-      <h2 class="board-container__title">fale conosco no perfil</h2>
+      <h2 class="board-container__title">Fale Conosco</h2>
       <form class="footer-global__contact-form" action="#" method="POST">
-        <input type="text" class="footer-global__input" placeholder="Nome completo" required>
-        <input type="email" class="footer-global__input" placeholder="Endereço de E-mail" required>
-        <textarea class="footer-global__textarea" placeholder="Sua mensagem" required></textarea>
+        <input type="text" class="footer-global__input" placeholder="Seu nome completo" required>
+        <input type="email" class="footer-global__input" placeholder="Seu endereço de e-mail" required>
+        <textarea class="footer-global__textarea" placeholder="Escreva aqui sua mensagem para a equipe BookShelf..." required></textarea>
         <button type="submit" class="footer-global__btn">Enviar Mensagem</button>
       </form>
     </section>

@@ -6,6 +6,52 @@ document.addEventListener("DOMContentLoaded", () => {
   const STORAGE_KEY = "bookshelf_modelo_grafica_a4_v1";
 
   const autorPadrao = window.NOME_USUARIO_LOGADO || "Autor(a) BookShelf";
+  const usuarioLogado = Boolean(window.USUARIO_LOGADO);
+  let urlDestinoPendente = null;
+
+  function abrirPopupLogin(tipo = "salvar", urlDestino = null) {
+    const modal = document.getElementById("modalLoginObrigatorio");
+    if (!modal) return;
+
+    urlDestinoPendente = urlDestino;
+    const icon = document.getElementById("modalLoginIcon");
+    const title = document.getElementById("modalLoginTitle");
+    const desc = document.getElementById("modalLoginDesc");
+    const btnSair = document.getElementById("modalBtnSairMesmoAssim");
+    const btnContinuar = document.getElementById("modalBtnContinuar");
+
+    if (tipo === "sair") {
+      if (icon) icon.textContent = "⚠️";
+      if (title) title.textContent = "Você precisa estar logado!";
+      if (desc) desc.textContent = "Você está saindo da página do editor. Se sair agora sem fazer login, as preferências e escolhas do seu modelo de livro não ficarão salvas na sua conta.";
+      if (btnSair) {
+        btnSair.style.display = "block";
+        btnSair.textContent = "Sair sem Salvar";
+      }
+      if (btnContinuar) btnContinuar.textContent = "Permanecer no Modelo";
+    } else if (tipo === "escrever") {
+      if (icon) icon.textContent = "✍️";
+      if (title) title.textContent = "Escrita Completa Liberada para Autores";
+      if (desc) desc.textContent = "A redação completa e o desenvolvimento de todos os capítulos do miolo são exclusivos para membros cadastrados. Faça login ou crie sua conta para começar a escrever agora mesmo!";
+      if (btnSair) btnSair.style.display = "none";
+      if (btnContinuar) btnContinuar.textContent = "Continuar Escolhendo no Modelo";
+    } else {
+      // salvar
+      if (icon) icon.textContent = "🔒";
+      if (title) title.textContent = "Você precisa estar logado para salvar!";
+      if (desc) desc.textContent = "Para salvar o modelo do livro, as páginas pré-textuais e os capítulos no banco de dados da BookShelf, faça login na sua conta ou cadastre-se gratuitamente.";
+      if (btnSair) btnSair.style.display = "none";
+      if (btnContinuar) btnContinuar.textContent = "Continuar Escolhendo";
+    }
+
+    modal.classList.add("is-active");
+  }
+
+  function fecharPopupLogin() {
+    const modal = document.getElementById("modalLoginObrigatorio");
+    if (modal) modal.classList.remove("is-active");
+    urlDestinoPendente = null;
+  }
 
   function criarEstadoInicial() {
     return {
@@ -484,6 +530,7 @@ document.addEventListener("DOMContentLoaded", () => {
               <label class="a4-field-label">Título do Capítulo (Deixe em branco se for continuação da página anterior)</label>
               <input type="text" class="a4-input" data-miolo-idx="${idx}" data-miolo-field="capituloTitulo" value="${escaparAttr(pagMiolo.capituloTitulo)}" placeholder="Ex: Capítulo ${numeroArabico} — Título do Capítulo" style="font-size: 1.35rem; font-weight: 700; margin-bottom: 6px;">
             </div>
+            ${usuarioLogado ? `
             <div style="flex: 1; display: flex; flex-direction: column;">
               <div class="no-print" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                 <label class="a4-field-label" style="margin-bottom: 0;">Texto da Página ${numeroArabico} (Mancha Gráfica A4)</label>
@@ -491,6 +538,30 @@ document.addEventListener("DOMContentLoaded", () => {
               </div>
               <textarea class="a4-textarea a4-miolo-textarea" data-miolo-idx="${idx}" data-miolo-field="conteudo" placeholder="Escreva aqui o conteúdo literário da página ${numeroArabico} do seu livro...">${escaparHTML(pagMiolo.conteudo)}</textarea>
             </div>
+            ` : `
+            <div style="flex: 1; display: flex; flex-direction: column;">
+              <div class="no-print" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <label class="a4-field-label" style="margin-bottom: 0;">Texto da Página ${numeroArabico} (Mancha Gráfica A4)</label>
+                <span style="font-size: 0.75rem; color: #90323D; font-weight: 700;">🔒 Escrita Completa Restrita a Usuários Logados</span>
+              </div>
+              <div class="escrita-restrita-box" title="Clique para liberar a escrita completa deste capítulo">
+                <div class="escrita-restrita-icon">✍️</div>
+                <h4 class="escrita-restrita-title">Área de Escrita Completa — Exclusiva para Autores</h4>
+                <p class="escrita-restrita-text">
+                  Como visitante, você pode <strong>escolher</strong> o modelo de livro, o gênero literário e a capa. 
+                  A <strong>digitação completa de todos os capítulos</strong> e o salvamento são liberados após o login.
+                </p>
+                <div class="escrita-restrita-actions">
+                  <button type="button" class="grafica-btn grafica-btn--primary btn-trigger-login-box">
+                    Fazer Login para Liberar a Escrita
+                  </button>
+                  <a href="/cadastro" class="grafica-btn grafica-btn--outline" style="text-decoration: none;">
+                    Criar Conta Gratuita
+                  </a>
+                </div>
+              </div>
+            </div>
+            `}
           </div>
           <div class="a4-running-footer">
             <span>${ehImpar ? "Margem Interna Esquerda: 30mm" : numeroArabico}</span>
@@ -686,6 +757,13 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
 
+    container.querySelectorAll(".escrita-restrita-box, .btn-trigger-login-box").forEach((box) => {
+      box.addEventListener("click", (e) => {
+        e.stopPropagation();
+        abrirPopupLogin("escrever");
+      });
+    });
+
     container.querySelectorAll("[data-miolo-idx]").forEach((el) => {
       el.addEventListener("input", (e) => {
         const idx = parseInt(e.target.getAttribute("data-miolo-idx"), 10);
@@ -807,6 +885,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Adicionar nova página de miolo ou novo capítulo
   document.getElementById("btnAddPaginaMiolo")?.addEventListener("click", () => {
+    if (!usuarioLogado) {
+      abrirPopupLogin("escrever");
+      return;
+    }
     const novoNum = estado.paginasMiolo.length + 1;
     estado.paginasMiolo.push({
       id: `miolo_${Date.now()}`,
@@ -821,6 +903,10 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   document.getElementById("btnAddNovoCapitulo")?.addEventListener("click", () => {
+    if (!usuarioLogado) {
+      abrirPopupLogin("escrever");
+      return;
+    }
     const novoNum = estado.paginasMiolo.length + 1;
     const totalCaps =
       estado.paginasMiolo.filter((p) => p.capituloTitulo && p.capituloTitulo.trim()).length + 1;
@@ -955,8 +1041,136 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   }
 
+  // Presets para escolha de modelo / gênero de livro
+  const presetsGeneros = {
+    romance: {
+      titulo: "O Amor nos Tempos do Silêncio",
+      subtitulo: "Um encontro inesperado em meio ao caos urbano",
+      capaPreset: "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?auto=format&fit=crop&w=1200&q=80",
+      tipografia: "Garamond 11,5/18 pt",
+      capitulo1: "Capítulo 1 — O Primeiro Olhar",
+      sinopse: "Em uma metrópole apressada, dois desconhecidos compartilham um vagão de trem e descobrem que as maiores distâncias às vezes se encurtam em uma troca de olhares.",
+    },
+    fantasia: {
+      titulo: "As Crônicas de Eldoria: O Despertar da Névoa",
+      subtitulo: "Nas florestas esquecidas, antigas magias voltam à vida",
+      capaPreset: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1200&q=80",
+      tipografia: "Georgia 11,5/18 pt",
+      capitulo1: "Capítulo 1 — A Floresta Sussurrante",
+      sinopse: "Uma ordem perdida de guardiões precisa se reunir quando o véu entre os mundos começa a se romper sobre o vale encantado de Eldoria.",
+    },
+    scifi: {
+      titulo: "Sintaxe Estelar: Além da Última Órbita",
+      subtitulo: "Quando a inteligência artificial aprendeu a sonhar com estrelas",
+      capaPreset: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80",
+      tipografia: "Helvetica / Georgia 11/17 pt",
+      capitulo1: "Capítulo 1 — O Sinal na Frequência Zero",
+      sinopse: "A tripulação de uma estação de pesquisa no cinturão de asteroides capta uma transmissão matemática que não foi emitida por humanos nem por máquinas.",
+    },
+    suspense: {
+      titulo: "O Segredo da Rua dos Ciprestes",
+      subtitulo: "Nenhuma sombra desaparece sem deixar um rastro",
+      capaPreset: "https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&w=1200&q=80",
+      tipografia: "Baskerville 11,5/18 pt",
+      capitulo1: "Capítulo 1 — A Mancha no Asfalto",
+      sinopse: "Um detetive aposentado se vê diante do único caso não resolvido de sua carreira quando uma carta anônima chega trinta anos depois.",
+    },
+    poesia: {
+      titulo: "Geometria dos Instantes",
+      subtitulo: "Versos sobre a brevidade, o vento e as margens do rio",
+      capaPreset: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=1200&q=80",
+      tipografia: "Caslon 12/20 pt",
+      capitulo1: "I — Do Peso das Coisas Leves",
+      sinopse: "Uma antologia poética que transita pelas estações da alma, recolhendo silêncios, folhas caídas e o murmúrio incontido da memória.",
+    },
+    documentario: {
+      titulo: "Vozes da Terra: Relatos do Brasil Profundo",
+      subtitulo: "Histórias orais de artesãos, pescadores e guardiões do cerrado",
+      capaPreset: "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=1200&q=80",
+      tipografia: "Palatino 11,5/18 pt",
+      capitulo1: "Capítulo 1 — Onde o Rio Faz a Curva",
+      sinopse: "Fruto de dezenas de entrevistas em comunidades ribeirinhas, uma investigação profunda sobre identidade e resistência cultural.",
+    },
+  };
+
+  document.querySelectorAll(".genre-pill-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".genre-pill-btn").forEach((b) => b.classList.remove("is-active"));
+      btn.classList.add("is-active");
+      const genero = btn.getAttribute("data-genre");
+      const p = presetsGeneros[genero];
+      if (p) {
+        estado.meta.titulo = p.titulo;
+        estado.meta.subtitulo = p.subtitulo;
+        estado.meta.capaImagemUrl = p.capaPreset;
+        estado.meta.colofaoTipografia = p.tipografia;
+        estado.meta.sinopseContracapa = p.sinopse;
+        if (estado.paginasMiolo && estado.paginasMiolo.length > 0) {
+          estado.paginasMiolo[0].capituloTitulo = p.capitulo1;
+        }
+        salvarLocal();
+        renderizarTudo();
+        mostrarToast(`Modelo '${btn.textContent.trim()}' escolhido!`);
+      }
+    });
+  });
+
+  // Eventos do Modal de Login Obrigatório
+  document.getElementById("modalBtnCloseX")?.addEventListener("click", fecharPopupLogin);
+  document.getElementById("modalBtnContinuar")?.addEventListener("click", fecharPopupLogin);
+  document.getElementById("modalBtnSairMesmoAssim")?.addEventListener("click", () => {
+    const destino = urlDestinoPendente;
+    fecharPopupLogin();
+    if (destino) {
+      window.location.href = destino;
+    }
+  });
+
+  document.getElementById("modalLoginObrigatorio")?.addEventListener("click", (e) => {
+    if (e.target.id === "modalLoginObrigatorio") {
+      fecharPopupLogin();
+    }
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      fecharPopupLogin();
+    }
+  });
+
+  // Intercepta a saída da página para quem não está logado
+  if (!usuarioLogado) {
+    document.addEventListener("click", (e) => {
+      const link = e.target.closest("a");
+      if (!link) return;
+      const href = link.getAttribute("href");
+      if (!href || href === "#" || href.startsWith("javascript:")) return;
+      // Se for link do próprio modal de login ou botão de login do banner, deixa navegar normalmente
+      if (link.id === "modalBtnLogin" || link.id === "modalBtnCadastro" || link.id === "btnBannerFazerLogin") {
+        return;
+      }
+      // Se for para a mesma página, ignora
+      const currentPath = window.location.pathname;
+      if (href === currentPath || href === window.location.href) return;
+
+      e.preventDefault();
+      abrirPopupLogin("sair", href);
+    });
+
+    window.addEventListener("beforeunload", (e) => {
+      if (!usuarioLogado) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    });
+  }
+
   // Salvar no servidor (MySQL / SQLite) + navegador
   document.getElementById("btnSalvarModelo")?.addEventListener("click", async () => {
+    if (!usuarioLogado) {
+      abrirPopupLogin("salvar");
+      return;
+    }
     salvarLocal();
     try {
       const resp = await fetch("/api/modelo-grafica/salvar", {
@@ -965,7 +1179,11 @@ document.addEventListener("DOMContentLoaded", () => {
         body: JSON.stringify(montarPayloadServidor()),
       });
       const data = await resp.json();
-      mostrarToast(data.mensagem || "Modelo salvo com sucesso!");
+      if (data.precisa_login) {
+        abrirPopupLogin("salvar");
+      } else {
+        mostrarToast(data.mensagem || "Modelo salvo com sucesso!");
+      }
     } catch (e) {
       mostrarToast("Salvo localmente neste navegador!");
     }
@@ -996,6 +1214,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Validar todas as páginas e Publicar Livro na Biblioteca BookShelf
   document.getElementById("btnPublicarModelo")?.addEventListener("click", async () => {
+    if (!usuarioLogado) {
+      abrirPopupLogin("salvar");
+      return;
+    }
     const paginas = obterDefinicaoPaginas();
     const pendentes = paginas.filter((p) => !p.preenchida);
 
@@ -1025,7 +1247,11 @@ document.addEventListener("DOMContentLoaded", () => {
           }, 1200);
         }
       } else {
-        mostrarToast(data.erro || "Erro ao publicar o livro.");
+        if (data.precisa_login) {
+          abrirPopupLogin("salvar");
+        } else {
+          mostrarToast(data.erro || "Erro ao publicar o livro.");
+        }
       }
     } catch (e) {
       mostrarToast("Erro de conexão ao tentar publicar a obra.");

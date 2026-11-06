@@ -499,6 +499,312 @@
       z-index: 9999;
     }
 
+    /* Área de escrita de miolo quando o usuário não estiver logado */
+    .escrita-restrita-box {
+      background: linear-gradient(180deg, #fffcfb 0%, #fff7ed 100%);
+      border: 2px dashed rgba(144, 50, 61, 0.4);
+      border-radius: 16px;
+      padding: 38px 24px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      margin: 16px 0;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05);
+      cursor: pointer;
+      transition: transform 0.18s ease, border-color 0.18s ease;
+    }
+
+    .escrita-restrita-box:hover {
+      border-color: var(--bg-nav);
+      transform: translateY(-2px);
+    }
+
+    .escrita-restrita-icon {
+      font-size: 2.2rem;
+      width: 62px;
+      height: 62px;
+      border-radius: 50%;
+      background: #fee2e2;
+      color: #90323D;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(144, 50, 61, 0.15);
+    }
+
+    .escrita-restrita-title {
+      font-size: 1.22rem;
+      font-weight: 700;
+      color: var(--bg-nav);
+      margin: 0;
+    }
+
+    .escrita-restrita-text {
+      font-size: 0.94rem;
+      color: #475569;
+      max-width: 540px;
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    .escrita-restrita-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 6px;
+    }
+
+    /* Banner de status no topo */
+    .grafica-auth-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 22px;
+      border-radius: 14px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      flex-wrap: wrap;
+    }
+
+    .grafica-auth-banner--visitante {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      color: #92400e;
+    }
+
+    .grafica-auth-banner--logado {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+    }
+
+    /* Seletor de escolha de modelo/gênero de livro */
+    .grafica-genres-selector {
+      background: #f8fafc;
+      padding: 16px 20px;
+      border-radius: 14px;
+      border: 1px solid #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .grafica-genres-label {
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--bg-nav);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .grafica-genres-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .genre-pill-btn {
+      padding: 7px 14px;
+      border-radius: 999px;
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #334155;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.18s ease;
+    }
+
+    .genre-pill-btn:hover, .genre-pill-btn.is-active {
+      background: var(--bg-nav);
+      color: #fff;
+      border-color: var(--bg-nav);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(94, 11, 21, 0.15);
+    }
+
+    /* Modal de Login Obrigatório para Escrever / Salvar / Sair */
+    .modal-login-backdrop {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(15, 23, 42, 0.72);
+      backdrop-filter: blur(5px);
+      z-index: 10000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      animation: fadeInModal 0.2s ease-out;
+    }
+
+    .modal-login-backdrop.is-active {
+      display: flex;
+    }
+
+    @keyframes fadeInModal {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal-login-card {
+      background: #ffffff;
+      width: 100%;
+      max-width: 520px;
+      border-radius: 20px;
+      padding: 34px 28px;
+      position: relative;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 16px;
+      border: 1px solid rgba(144, 50, 61, 0.15);
+      animation: scaleUpModal 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes scaleUpModal {
+      from { transform: scale(0.92); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-login-icon {
+      width: 66px;
+      height: 66px;
+      border-radius: 50%;
+      background: #fee2e2;
+      color: #90323D;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      box-shadow: 0 6px 16px rgba(144, 50, 61, 0.18);
+    }
+
+    .modal-login-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--bg-nav);
+      margin: 0;
+    }
+
+    .modal-login-desc {
+      font-size: 0.94rem;
+      color: #475569;
+      line-height: 1.55;
+      margin: 0;
+    }
+
+    .modal-login-buttons {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .modal-login-btn-primary {
+      background: var(--bg-nav);
+      color: #fff;
+      padding: 13px 20px;
+      border-radius: 12px;
+      font-weight: 700;
+      text-decoration: none;
+      font-size: 0.95rem;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(94, 11, 21, 0.2);
+      transition: all 0.15s ease;
+    }
+
+    .modal-login-btn-primary:hover {
+      background: #73101c;
+      transform: translateY(-1px);
+    }
+
+    .modal-login-btn-secondary {
+      background: #f1f5f9;
+      color: #1e293b;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      font-size: 0.9rem;
+      border: 1px solid #cbd5e1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+
+    .modal-login-btn-secondary:hover {
+      background: #e2e8f0;
+    }
+
+    .modal-login-btn-sair {
+      background: #fff1f2;
+      color: #be123c;
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.86rem;
+      border: 1px solid #fecdd3;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .modal-login-btn-sair:hover {
+      background: #ffe4e6;
+    }
+
+    .modal-login-btn-dismiss {
+      background: transparent;
+      color: #64748b;
+      border: none;
+      font-size: 0.86rem;
+      cursor: pointer;
+      padding: 8px;
+      text-decoration: underline;
+    }
+
+    .modal-login-close-x {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      color: #64748b;
+      cursor: pointer;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s ease;
+    }
+
+    .modal-login-close-x:hover {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+
     /* Configuração de Impressão Oficial A4 para Gráfica */
     @page {
       size: A4 portrait;
@@ -578,6 +884,41 @@
   </nav>
 
   <main class="grafica-workspace">
+    <!-- BANNER DE STATUS DE ACESSO -->
+    {% if usuario_logado %}
+      <div class="grafica-auth-banner grafica-auth-banner--logado">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span>✍️</span>
+          <span><strong>Modo Autor Ativo:</strong> Você está conectado como <strong>{{ session.get('nome') or session.get('username') }}</strong>. Escrita completa liberada e salvamento no banco de dados ativo.</span>
+        </div>
+        <span style="font-size: 0.8rem; background: #dcfce7; padding: 4px 10px; border-radius: 999px;">Acesso Total</span>
+      </div>
+    {% else %}
+      <div class="grafica-auth-banner grafica-auth-banner--visitante">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span>👀</span>
+          <span><strong>Modo Escolha de Modelo (Visitante):</strong> Você pode escolher o modelo, gênero, capa e estrutura do livro. A escrita completa e o salvamento no banco de dados são liberados após o login.</span>
+        </div>
+        <a href="{{ url_for('login') }}" class="grafica-btn grafica-btn--primary" id="btnBannerFazerLogin" style="padding: 6px 14px; font-size: 0.8rem;">Fazer Login</a>
+      </div>
+    {% endif %}
+
+    <!-- BARRA DE ESCOLHA DE GÊNEROS E MODELOS DE LIVRO -->
+    <section class="grafica-genres-selector">
+      <div class="grafica-genres-label">
+        <span>📚 Escolha o Modelo / Gênero Literário do Livro:</span>
+        <span style="font-size: 0.74rem; font-weight: 500; color: #64748b; text-transform: none;">(Clique em um modelo para carregar sugestão de capa, título e estilo)</span>
+      </div>
+      <div class="grafica-genres-row">
+        <button type="button" class="genre-pill-btn" data-genre="romance">💌 Romance Contemporâneo</button>
+        <button type="button" class="genre-pill-btn" data-genre="fantasia">⚔️ Fantasia & Aventura</button>
+        <button type="button" class="genre-pill-btn" data-genre="scifi">🚀 Ficção Científica</button>
+        <button type="button" class="genre-pill-btn" data-genre="suspense">🕵️ Suspense & Mistério</button>
+        <button type="button" class="genre-pill-btn" data-genre="poesia">📜 Poesia & Crônica</button>
+        <button type="button" class="genre-pill-btn" data-genre="documentario">🎙️ Documentário Autoral</button>
+      </div>
+    </section>
+
     <!-- BARRA DE TOPO DO MODELO DE GRÁFICA -->
     <section class="grafica-header-bar">
       <div class="grafica-header-top">
@@ -676,10 +1017,37 @@
 
   <div class="grafica-toast" id="graficaToast"></div>
 
+  <!-- MODAL POPUP: LOGIN OBRIGATÓRIO (AO SALVAR OU AO SAIR DA PÁGINA) -->
+  <div class="modal-login-backdrop" id="modalLoginObrigatorio" role="dialog" aria-modal="true" aria-labelledby="modalLoginTitle">
+    <div class="modal-login-card">
+      <button type="button" class="modal-login-close-x" id="modalBtnCloseX" aria-label="Fechar modal">&times;</button>
+      <div class="modal-login-icon" id="modalLoginIcon">🔒</div>
+      <h3 class="modal-login-title" id="modalLoginTitle">Você precisa estar logado!</h3>
+      <p class="modal-login-desc" id="modalLoginDesc">
+        Para ter acesso à escrita completa do livro, salvar o modelo no banco de dados e continuar depois, faça login na sua conta BookShelf.
+      </p>
+      <div class="modal-login-buttons">
+        <a href="{{ url_for('login') }}" class="modal-login-btn-primary" id="modalBtnLogin">
+          Fazer Login na Conta
+        </a>
+        <a href="{{ url_for('cadastro') }}" class="modal-login-btn-secondary" id="modalBtnCadastro">
+          Cadastre-se Gratuitamente
+        </a>
+        <button type="button" class="modal-login-btn-sair" id="modalBtnSairMesmoAssim" style="display: none;">
+          Sair sem Salvar
+        </button>
+        <button type="button" class="modal-login-btn-dismiss" id="modalBtnContinuar">
+          Continuar Escolhendo no Modelo
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script id="dadosSalvosServidor" type="application/json">
     {{ (dados_salvos or 'null') | safe }}
   </script>
   <script>
+    window.USUARIO_LOGADO = {{ 'true' if usuario_logado else 'false' }};
     window.NOME_USUARIO_LOGADO = {{ (nome_usuario or 'Autor(a) BookShelf') | tojson }};
   </script>
   <script src="{{ url_for('static', filename='js/modelo_grafica.js') }}"></script>
