@@ -60,115 +60,428 @@
       {% endif %}
     {% endwith %}
 
-    <!-- Feed de Apresentação (Estilo Instagram / Perfil) -->
+    <!-- Feed de Apresentação (Estilo Instagram / Perfil Conectado ao Banco) -->
     <section class="profile-feed">
       <div class="profile-feed__avatar">
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
       </div>
-      <div class="profile-feed__info">
-        <h2>{{ usuario.nome if usuario else 'Leitor Ávido' }}</h2>
-        <span class="profile-feed__user-email" style="display: block; font-size: 0.85rem; color: #78716c; margin-top: -2px; margin-bottom: 6px;">{{ usuario.username }}</span>
-        <p>{{ usuario.bio if usuario else 'Explorando clássicos da literatura brasileira e escrevendo novos horizontes literários.' }}</p>
+      <div class="profile-feed__info" style="flex: 1;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px;">
+          <div>
+            <h2 id="profileDisplayName">{{ usuario.nome if usuario else 'Leitor Ávido' }}</h2>
+            <span class="profile-feed__user-email" style="display: block; font-size: 0.85rem; color: #78716c; margin-top: -2px; margin-bottom: 6px;">{{ usuario.username }}</span>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button type="button" class="profile-controls__btn" onclick="selecionarAbaPerfil('suggestions')" style="padding: 7px 16px; font-size: 0.82rem; background: #5E0B15; color: #fff;">
+              ✨ Ver Sugestões ({{ sugestoes|length }})
+            </button>
+            <button type="button" class="profile-controls__btn" onclick="selecionarAbaPerfil('edit-profile')" style="padding: 7px 16px; font-size: 0.82rem; background: #fff; color: var(--bg-nav); border: 1px solid var(--border-color); box-shadow: none;">
+              ⚙️ Editar Perfil & Preferências
+            </button>
+          </div>
+        </div>
+        <p id="profileDisplayBio" style="margin-bottom: 12px; color: #475569; font-size: 0.95rem; line-height: 1.5;">{{ usuario.bio if usuario else 'Explorando clássicos da literatura brasileira e escrevendo novos horizontes literários.' }}</p>
+
+        <!-- Preferências Literárias Salvas no Banco de Dados -->
+        <div class="profile-feed__meta-badges" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+          <span style="font-size: 0.78rem; font-weight: 700; color: #78716c; text-transform: uppercase; letter-spacing: 0.5px;">Gêneros Salvos:</span>
+          {% if usuario.generos_favoritos %}
+            {% for g_fav in usuario.generos_favoritos.split(',') %}
+              {% if g_fav.strip() %}
+                <span class="profile-tag-pill" style="background: rgba(188, 128, 52, 0.15); color: #854d0e; padding: 3px 12px; border-radius: 999px; font-size: 0.78rem; font-weight: 600;">{{ g_fav.strip() }}</span>
+              {% endif %}
+            {% endfor %}
+          {% else %}
+            <span style="font-size: 0.8rem; color: #94a3b8; font-style: italic;">Nenhum gênero configurado</span>
+          {% endif %}
+
+          {% if usuario.autores_favoritos %}
+            <span style="font-size: 0.78rem; font-weight: 700; color: #78716c; text-transform: uppercase; letter-spacing: 0.5px; margin-left: 6px;">Autores:</span>
+            {% for a_fav in usuario.autores_favoritos.split(',') %}
+              {% if a_fav.strip() %}
+                <span class="profile-tag-pill" style="background: rgba(37, 99, 235, 0.12); color: #1e40af; padding: 3px 12px; border-radius: 999px; font-size: 0.78rem; font-weight: 600;">{{ a_fav.strip() }}</span>
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+        </div>
       </div>
     </section>
 
     <!-- Barra de Componentes de Controle (Abas) -->
     <nav class="profile-controls" aria-label="Ferramentas do perfil">
-      <button class="profile-controls__btn active" data-tab="shelf">Prateleira Virtual</button>
-      <button class="profile-controls__btn" data-tab="draft">Bloco de Rascunho</button>
-      <button class="profile-controls__btn" data-tab="chat">Chat de Bate-papo</button>
-      <button class="profile-controls__btn" data-tab="publish">Revisão e Publicação</button>
+      <button class="profile-controls__btn {% if aba_ativa == 'shelf' %}active{% endif %}" data-tab="shelf">Prateleira Virtual</button>
+      <button class="profile-controls__btn {% if aba_ativa == 'suggestions' %}active{% endif %}" data-tab="suggestions">
+        ✨ Sugestões Personalizadas <span style="background: #ef4444; color: #fff; font-size: 0.72rem; padding: 1px 7px; border-radius: 999px; margin-left: 4px;">{{ sugestoes|length }}</span>
+      </button>
+      <button class="profile-controls__btn {% if aba_ativa == 'edit-profile' %}active{% endif %}" data-tab="edit-profile">
+        ⚙️ Editar Perfil & Dados Mocados
+      </button>
+      <button class="profile-controls__btn {% if aba_ativa == 'draft' %}active{% endif %}" data-tab="draft">Bloco de Rascunho</button>
+      <button class="profile-controls__btn {% if aba_ativa == 'chat' %}active{% endif %}" data-tab="chat">Chat de Bate-papo</button>
+      <button class="profile-controls__btn {% if aba_ativa == 'publish' %}active{% endif %}" data-tab="publish">Revisão e Publicação</button>
       <a href="{{ url_for('modelo_grafica') }}" class="profile-controls__btn" style="text-decoration: none; background: var(--accent-blue); color: #fff;">Modelo de Livro p/ Gráfica (A4)</a>
     </nav>
 
     <!-- MAIN DINÂMICO (Renderiza o conteúdo conforme a aba selecionada) -->
     <div id="dynamicMainContainer" class="dynamic-tool-area">
-      <!-- O conteúdo padrão injetado exibe os cards idênticos aos da Home -->
-      <section class="board-container" style="box-shadow: none; padding: 0;">
-        {% if busca %}
-          <div class="lancamentos-search-feedback" style="margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between;">
-            <span>Filtrando estante por: <strong style="color: #FDE68A;">"{{ busca }}"</strong></span>
-            <a href="{{ url_for('perfil') }}" class="lancamentos-clear-search">Limpar busca ✕</a>
-          </div>
-        {% endif %}
-        <h2 class="board-container__title">suas literaturas salvas</h2>
-        <div class="carousel">
-          <button class="carousel__nav-btn carousel__nav-btn--prev" aria-label="Anterior">&lt;</button>
-          <div class="carousel__track" id="userShelfTrack">
-            <!-- Cards de Livro idênticos aos da Home -->
-            {% if not busca or 'casmurro' in busca.lower() or 'machado' in busca.lower() or 'dom' in busca.lower() %}
-            <article class="book-card">
-              <div class="book-card__cover"><div class="cover-grid"></div></div>
-              <header class="book-card__header"><h3 class="book-card__title">Dom Casmurro</h3></header>
-              <div class="book-card__tracker">
-                <input type="range" class="book-card__range" min="0" max="250" value="80">
-                <output class="book-card__count">80 / 250 pág.</output>
-              </div>
-              <footer class="book-card__actions">
-                <div class="book-card__actions-buttons">
-                  <button type="button" class="book-card__action-btn book-card__action-btn--like is-active" title="Curtido! ❤️" aria-label="Curtir" onclick="toggleBookLike(this, event)">
-                    <svg viewBox="0 0 24 24" class="book-card__icon-heart"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l8.72-8.72 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-                  </button>
-                  <button type="button" class="book-card__action-btn book-card__action-btn--fav is-active" title="Salvo nos favoritos! ⭐" aria-label="Favoritar" onclick="toggleBookFav(this, event)">
-                    <svg viewBox="0 0 24 24" class="book-card__icon-fav">
-                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
-                      <polygon points="12,7 13.1,9.3 15.6,9.6 13.8,11.3 14.3,13.7 12,12.5 9.7,13.7 10.2,11.3 8.4,9.6 10.9,9.3" class="fav-star"></polygon>
-                    </svg>
-                  </button>
-                </div>
-                <div class="book-card__reading-time" title="Você passou 1h 50m lendo este livro" onclick="mostrarTempoLeitura('Dom Casmurro', '1h 50m', event)">
-                  <svg viewBox="0 0 24 24" class="book-card__icon-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                  <span class="book-card__reading-time-val">1h 50m</span>
-                </div>
-              </footer>
-            </article>
-            {% endif %}
-            {% if livros_prateleira %}
-              {% for l in livros_prateleira %}
-                <article class="book-card">
-                  <div class="book-card__badge" aria-hidden="true">100%</div>
-                  <a href="{{ url_for('descricao_livro', id_livro=l.id) }}" class="book-card__cover" style="display: block;"><div class="cover-grid"></div></a>
-                  <header class="book-card__header"><h3 class="book-card__title" title="{{ l.titulo }}">{{ l.titulo }}</h3></header>
-                  <div class="book-card__tracker">
-                    <input type="range" class="book-card__range" min="0" max="100" value="{{ l.progresso|int }}">
-                    <output class="book-card__count">{{ l.progresso|int }} / 100%</output>
-                  </div>
-                  <footer class="book-card__actions">
-                    <div class="book-card__actions-buttons">
-                      <button type="button" class="book-card__action-btn book-card__action-btn--like {% if l.curtido %}is-active{% endif %}" title="Curtir (Like)" aria-label="Curtir" onclick="toggleBookLike(this, event)">
-                        <svg viewBox="0 0 24 24" class="book-card__icon-heart"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l8.72-8.72 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-                      </button>
-                      <button type="button" class="book-card__action-btn book-card__action-btn--fav {% if l.favorito %}is-active{% endif %}" title="Favoritar este livro" aria-label="Favoritar" onclick="toggleBookFav(this, event)">
-                        <svg viewBox="0 0 24 24" class="book-card__icon-fav">
-                          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
-                          <polygon points="12,7 13.1,9.3 15.6,9.6 13.8,11.3 14.3,13.7 12,12.5 9.7,13.7 10.2,11.3 8.4,9.6 10.9,9.3" class="fav-star"></polygon>
-                        </svg>
-                      </button>
-                    </div>
-                    <div class="book-card__reading-time" title="Você passou {{ l.tempo_leitura or '1h 30m' }} lendo este livro" onclick="mostrarTempoLeitura('{{ l.titulo }}', '{{ l.tempo_leitura or '1h 30m' }}', event)">
-                      <svg viewBox="0 0 24 24" class="book-card__icon-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                      <span class="book-card__reading-time-val">{{ l.tempo_leitura or '1h 30m' }}</span>
-                    </div>
-                  </footer>
-                </article>
-              {% endfor %}
-            {% endif %}
-          </div>
-          <button class="carousel__nav-btn carousel__nav-btn--next" aria-label="Próximo">&gt;</button>
-        </div>
-      </section>
-    </div>
 
-    <!-- Formulário de Contato Específico do Perfil -->
-    <section class="board-container">
-      <h2 class="board-container__title">Fale Conosco</h2>
-      <form class="footer-global__contact-form" action="#" method="POST">
-        <input type="text" class="footer-global__input" placeholder="Seu nome completo" required>
-        <input type="email" class="footer-global__input" placeholder="Seu endereço de e-mail" required>
-        <textarea class="footer-global__textarea" placeholder="Escreva aqui sua mensagem para a equipe BookShelf..." required></textarea>
-        <button type="submit" class="footer-global__btn">Enviar Mensagem</button>
-      </form>
-    </section>
+      <!-- ABA 1: PRATELEIRA VIRTUAL -->
+      <div id="tabPane-shelf" class="profile-tab-pane" style="{% if aba_ativa != 'shelf' %}display: none;{% endif %}">
+        <section class="board-container" style="box-shadow: none; padding: 0;">
+          {% if busca %}
+            <div class="lancamentos-search-feedback" style="margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between;">
+              <span>Filtrando estante por: <strong style="color: #FDE68A;">"{{ busca }}"</strong></span>
+              <a href="{{ url_for('perfil') }}" class="lancamentos-clear-search">Limpar busca ✕</a>
+            </div>
+          {% endif %}
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+            <h2 class="board-container__title" style="margin-bottom: 0;">suas literaturas salvas</h2>
+            <button type="button" class="profile-controls__btn" onclick="selecionarAbaPerfil('suggestions')" style="font-size: 0.85rem; padding: 6px 16px;">
+              ✨ Ver Sugestões para Você &rarr;
+            </button>
+          </div>
+          <div class="carousel">
+            <button class="carousel__nav-btn carousel__nav-btn--prev" aria-label="Anterior">&lt;</button>
+            <div class="carousel__track" id="userShelfTrack">
+              <!-- Cards de Livro idênticos aos da Home -->
+              {% if not busca or 'casmurro' in busca.lower() or 'machado' in busca.lower() or 'dom' in busca.lower() %}
+              <article class="book-card">
+                <div class="book-card__cover"><div class="cover-grid"></div></div>
+                <header class="book-card__header"><h3 class="book-card__title">Dom Casmurro</h3></header>
+                <div class="book-card__tracker">
+                  <input type="range" class="book-card__range" min="0" max="250" value="80">
+                  <output class="book-card__count">80 / 250 pág.</output>
+                </div>
+                <footer class="book-card__actions">
+                  <div class="book-card__actions-buttons">
+                    <button type="button" class="book-card__action-btn book-card__action-btn--like is-active" title="Curtido! ❤️" aria-label="Curtir" onclick="toggleBookLike(this, event)">
+                      <svg viewBox="0 0 24 24" class="book-card__icon-heart"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l8.72-8.72 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                    </button>
+                    <button type="button" class="book-card__action-btn book-card__action-btn--fav is-active" title="Salvo nos favoritos! ⭐" aria-label="Favoritar" onclick="toggleBookFav(this, event)">
+                      <svg viewBox="0 0 24 24" class="book-card__icon-fav">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
+                        <polygon points="12,7 13.1,9.3 15.6,9.6 13.8,11.3 14.3,13.7 12,12.5 9.7,13.7 10.2,11.3 8.4,9.6 10.9,9.3" class="fav-star"></polygon>
+                      </svg>
+                    </button>
+                  </div>
+                  <div class="book-card__reading-time" title="Você passou 1h 50m lendo este livro" onclick="mostrarTempoLeitura('Dom Casmurro', '1h 50m', event)">
+                    <svg viewBox="0 0 24 24" class="book-card__icon-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    <span class="book-card__reading-time-val">1h 50m</span>
+                  </div>
+                </footer>
+              </article>
+              {% endif %}
+              {% if livros_prateleira %}
+                {% for l in livros_prateleira %}
+                  <article class="book-card">
+                    <div class="book-card__badge" aria-hidden="true">100%</div>
+                    <a href="{{ url_for('descricao_livro', id_livro=l.id) }}" class="book-card__cover" style="display: block;"><div class="cover-grid"></div></a>
+                    <header class="book-card__header"><h3 class="book-card__title" title="{{ l.titulo }}">{{ l.titulo }}</h3></header>
+                    <div class="book-card__tracker">
+                      <input type="range" class="book-card__range" min="0" max="100" value="{{ l.progresso|int }}">
+                      <output class="book-card__count">{{ l.progresso|int }} / 100%</output>
+                    </div>
+                    <footer class="book-card__actions">
+                      <div class="book-card__actions-buttons">
+                        <button type="button" class="book-card__action-btn book-card__action-btn--like {% if l.curtido %}is-active{% endif %}" title="Curtir (Like)" aria-label="Curtir" onclick="toggleBookLike(this, event)">
+                          <svg viewBox="0 0 24 24" class="book-card__icon-heart"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l8.72-8.72 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                        </button>
+                        <button type="button" class="book-card__action-btn book-card__action-btn--fav {% if l.favorito %}is-active{% endif %}" title="Favoritar este livro" aria-label="Favoritar" onclick="toggleBookFav(this, event)">
+                          <svg viewBox="0 0 24 24" class="book-card__icon-fav">
+                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
+                            <polygon points="12,7 13.1,9.3 15.6,9.6 13.8,11.3 14.3,13.7 12,12.5 9.7,13.7 10.2,11.3 8.4,9.6 10.9,9.3" class="fav-star"></polygon>
+                          </svg>
+                        </button>
+                      </div>
+                      <div class="book-card__reading-time" title="Você passou {{ l.tempo_leitura or '1h 30m' }} lendo este livro" onclick="mostrarTempoLeitura('{{ l.titulo }}', '{{ l.tempo_leitura or '1h 30m' }}', event)">
+                        <svg viewBox="0 0 24 24" class="book-card__icon-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                        <span class="book-card__reading-time-val">{{ l.tempo_leitura or '1h 30m' }}</span>
+                      </div>
+                    </footer>
+                  </article>
+                {% endfor %}
+              {% endif %}
+            </div>
+            <button class="carousel__nav-btn carousel__nav-btn--next" aria-label="Próximo">&gt;</button>
+          </div>
+        </section>
+      </div>
+
+      <!-- ABA 2: SUGESTÕES PERSONALIZADAS (CONECTADAS AO BANCO DE DADOS) -->
+      <div id="tabPane-suggestions" class="profile-tab-pane" style="{% if aba_ativa != 'suggestions' %}display: none;{% endif %}">
+        <section class="board-container" style="box-shadow: none; padding: 0;">
+          <div class="suggestions-hero-banner" style="background: linear-gradient(135deg, #2D170F 0%, #5E0B15 100%); color: #fff; padding: 26px 30px; border-radius: 20px; margin-bottom: 24px; box-shadow: 0 10px 25px rgba(45, 23, 15, 0.25);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+              <div>
+                <span style="display: inline-block; background: rgba(253, 230, 138, 0.2); color: #FDE68A; padding: 3px 12px; border-radius: 999px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; margin-bottom: 8px;">
+                  ✨ Motor de Recomendação Conectado ao MySQL
+                </span>
+                <h2 style="font-size: 1.5rem; margin-bottom: 6px; color: #fff;">Livros Sugeridos para Você, {{ usuario.nome }}</h2>
+                <p style="font-size: 0.92rem; color: rgba(255, 255, 255, 0.85); max-width: 680px; margin: 0;">
+                  O algoritmo cruzou as informações escritas no seu perfil (sua bio, seus autores favoritos e gêneros de interesse) com o acervo do banco de dados para recomendar as melhores obras abaixo:
+                </p>
+              </div>
+              <button type="button" class="profile-controls__btn" onclick="selecionarAbaPerfil('edit-profile')" style="background: #FDE68A; color: #5E0B15; font-weight: 800; border: none; padding: 11px 22px;">
+                ⚙️ Alterar Minhas Informações
+              </button>
+            </div>
+          </div>
+
+          <!-- Grid de Sugestões de Livros -->
+          <div class="suggestions-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 22px;">
+            {% for s in sugestoes %}
+              <article class="suggestion-card" style="background: #fff; border-radius: 18px; border: 1px solid #e2e8f0; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 6px 18px rgba(0,0,0,0.06); transition: transform 0.2s, box-shadow 0.2s;">
+                <!-- Topo com Capa e Badge de Afinidade -->
+                <div style="position: relative; height: 180px; background: #1e293b; overflow: hidden;">
+                  {% if s.capa %}
+                    <img src="{{ s.capa }}" alt="Capa de {{ s.titulo }}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.85;">
+                  {% else %}
+                    <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #5E0B15, #BC8034); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700;">BookShelf Digital</div>
+                  {% endif %}
+                  
+                  <!-- Selo de Afinidade % -->
+                  <div style="position: absolute; top: 12px; right: 12px; background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(4px); color: #FDE68A; padding: 6px 12px; border-radius: 999px; font-size: 0.85rem; font-weight: 800; border: 1px solid rgba(253, 230, 138, 0.3); display: flex; align-items: center; gap: 5px;">
+                    <span>🎯</span> {{ s.afinidade }}% Match
+                  </div>
+
+                  <!-- Tag do Gênero -->
+                  <div style="position: absolute; bottom: 12px; left: 12px; background: #5E0B15; color: #fff; padding: 4px 12px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; text-transform: uppercase;">
+                    {{ s.genero }}
+                  </div>
+                </div>
+
+                <!-- Conteúdo do Card -->
+                <div style="padding: 20px; display: flex; flex-direction: column; flex: 1;">
+                  <h3 style="font-size: 1.22rem; color: #1e293b; margin-bottom: 4px; font-weight: 700;">{{ s.titulo }}</h3>
+                  <span style="font-size: 0.9rem; color: #64748b; font-weight: 600; margin-bottom: 12px; display: block;">por {{ s.autor }}</span>
+
+                  <!-- Por que sugerimos (Justificativa Personalizada) -->
+                  <div class="suggestion-explanation" style="background: #f8fafc; border-left: 4px solid #BC8034; padding: 10px 14px; border-radius: 0 10px 10px 0; margin-bottom: 14px;">
+                    <div style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase; color: #854d0e; letter-spacing: 0.5px; margin-bottom: 3px;">
+                      💡 Por que sugerimos para seu perfil:
+                    </div>
+                    <div style="font-size: 0.88rem; color: #334155; line-height: 1.45;">
+                      {{ s.justificativa|safe }}
+                    </div>
+                  </div>
+
+                  <p style="font-size: 0.88rem; color: #64748b; line-height: 1.5; margin-bottom: 18px; flex: 1;">
+                    {{ s.sinopse }}
+                  </p>
+
+                  <!-- Ações do Livro Sugerido -->
+                  <div style="display: flex; gap: 10px; align-items: center; margin-top: auto; padding-top: 12px; border-top: 1px solid #f1f5f9;">
+                    {% if s.esta_na_estante %}
+                      <span style="display: inline-flex; align-items: center; gap: 6px; background: #dcfce7; color: #15803d; padding: 10px 16px; border-radius: 999px; font-size: 0.85rem; font-weight: 700; flex: 1; justify-content: center;">
+                        ✓ Salvo na sua Estante
+                      </span>
+                    {% else %}
+                      <form action="{{ url_for('adicionar_livro_estante', id_livro=s.id) }}" method="POST" style="flex: 1; margin: 0;">
+                        <button type="submit" class="profile-controls__btn" style="width: 100%; padding: 10px 16px; font-size: 0.85rem; background: #5E0B15; color: #fff;">
+                          + Adicionar à Estante
+                        </button>
+                      </form>
+                    {% endif %}
+
+                    {% if s.id_banco %}
+                      <a href="{{ url_for('ler_livro', id_livro=s.id_banco) }}" class="profile-controls__btn" style="text-decoration: none; padding: 10px 16px; font-size: 0.85rem; background: #BC8034; color: #fff;">
+                        📖 Ler Agora
+                      </a>
+                    {% else %}
+                      <a href="{{ url_for('descricao_livro', id_livro=s.id) }}" class="profile-controls__btn" style="text-decoration: none; padding: 10px 16px; font-size: 0.85rem; background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1;">
+                        Detalhes
+                      </a>
+                    {% endif %}
+                  </div>
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        </section>
+      </div>
+
+      <!-- ABA 3: EDITAR PERFIL & DADOS MOCADOS (CONECTADO AO BANCO) -->
+      <div id="tabPane-edit-profile" class="profile-tab-pane" style="{% if aba_ativa != 'edit-profile' %}display: none;{% endif %}">
+        <section class="board-container" style="box-shadow: none; padding: 0;">
+
+          <!-- SEÇÃO 1: PERFIS COM DADOS MOCADOS PARA TESTE RÁPIDO -->
+          <div style="background: #fff; border-radius: 20px; padding: 26px; border: 1px solid #e2e8f0; margin-bottom: 24px; box-shadow: 0 4px 16px rgba(0,0,0,0.04);">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+              <div>
+                <span style="background: rgba(37, 99, 235, 0.12); color: #2563eb; padding: 3px 12px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; text-transform: uppercase;">
+                  🎭 Dados Mocados Prontos para Teste
+                </span>
+                <h3 style="font-size: 1.35rem; color: #1e293b; margin-top: 6px; margin-bottom: 4px;">Escolha um Perfil Mocado de Exemplo</h3>
+                <p style="font-size: 0.9rem; color: #64748b; margin: 0;">
+                  Clique em qualquer leitor mocado abaixo para salvar automaticamente suas informações no banco de dados e conferir como as sugestões mudam instantaneamente:
+                </p>
+              </div>
+            </div>
+
+            <!-- Cards dos Perfis Mocados -->
+            <div class="mock-profiles-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px;">
+              {% for p_id, p_info in perfis_mocados.items() %}
+                <div class="mock-profile-card" style="border: 2px solid {% if usuario.nome == p_info.nome %}#5E0B15{% else %}#e2e8f0{% endif %}; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; background: {% if usuario.nome == p_info.nome %}#fff8f8{% else %}#ffffff{% endif %}; transition: border-color 0.2s, transform 0.2s;">
+                  <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+                    <span style="font-size: 1.8rem;">{{ p_info.icone }}</span>
+                    <div>
+                      <strong style="display: block; font-size: 1rem; color: #1e293b;">{{ p_info.nome }}</strong>
+                      <span style="display: block; font-size: 0.78rem; color: #64748b; font-weight: 600;">{{ p_info.rotulo }}</span>
+                    </div>
+                  </div>
+                  <p style="font-size: 0.82rem; color: #64748b; line-height: 1.4; margin-bottom: 12px; flex: 1;">
+                    {{ p_info.bio[:130] }}...
+                  </p>
+                  <div style="margin-bottom: 12px;">
+                    <div style="font-size: 0.74rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Gêneros Principais:</div>
+                    <div style="font-size: 0.78rem; color: #334155; font-weight: 600;">{{ p_info.generos_favoritos }}</div>
+                  </div>
+                  <div style="display: flex; gap: 8px; flex-direction: column;">
+                    <form action="{{ url_for('carregar_perfil_mocado', perfil_id=p_id) }}" method="POST" style="margin: 0;">
+                      <button type="submit" class="profile-controls__btn" style="width: 100%; padding: 8px 12px; font-size: 0.82rem; background: #5E0B15; color: #fff;">
+                        ⚡ Aplicar & Salvar no Banco
+                      </button>
+                    </form>
+                    <button type="button" class="profile-controls__btn" onclick="preencherPerfilMocado('{{ p_info.nome|escape }}', '{{ p_info.bio|escape }}', '{{ p_info.generos_favoritos|escape }}', '{{ p_info.interesses|escape }}', '{{ p_info.autores_favoritos|escape }}')" style="width: 100%; padding: 7px 12px; font-size: 0.8rem; background: #f8fafc; color: #334155; border: 1px solid #cbd5e1; box-shadow: none;">
+                      📝 Preencher no Formulário
+                    </button>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- SEÇÃO 2: FORMULÁRIO DE PREFERÊNCIAS CONECTADO AO BANCO -->
+          <div id="formPerfilPreferencias" style="background: #fff; border-radius: 20px; padding: 28px; border: 1px solid #e2e8f0; box-shadow: 0 4px 16px rgba(0,0,0,0.04);">
+            <div style="margin-bottom: 20px;">
+              <span style="background: rgba(188, 128, 52, 0.15); color: #854d0e; padding: 3px 12px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; text-transform: uppercase;">
+                💾 Conexão Direta ao Banco de Dados
+              </span>
+              <h3 style="font-size: 1.35rem; color: #1e293b; margin-top: 6px; margin-bottom: 4px;">Edite as Informações do Seu Perfil de Leitor</h3>
+              <p style="font-size: 0.9rem; color: #64748b; margin: 0;">
+                Tudo o que você escrever aqui será gravado no seu usuário no banco de dados e orientará o cálculo de compatibilidade de cada livro recomendado.
+              </p>
+            </div>
+
+            <form action="{{ url_for('salvar_preferencias_perfil') }}" method="POST" style="display: flex; flex-direction: column; gap: 18px;">
+              <!-- Nome Completo -->
+              <div>
+                <label style="display: block; font-size: 0.88rem; font-weight: 700; color: #1e293b; margin-bottom: 6px;">Nome de Exibição do Perfil:</label>
+                <input type="text" id="inputPerfilNome" name="nome" value="{{ usuario.nome }}" class="footer-global__input" placeholder="Ex: Ana Silva ou Prof. Carlos Eduardo" required style="width: 100%; padding: 12px 16px; border: 1px solid #cbd5e1; border-radius: 12px; font-size: 0.95rem;">
+              </div>
+
+              <!-- Biografia / Informações Escritas do Perfil -->
+              <div>
+                <label style="display: block; font-size: 0.88rem; font-weight: 700; color: #1e293b; margin-bottom: 6px;">Biografia & Perfil de Leitura (Informações Escritas):</label>
+                <textarea id="inputPerfilBio" name="bio" rows="4" class="footer-global__textarea" placeholder="Descreva seus hábitos literários, temas que mais te encantam, teorias que gosta de acompanhar..." style="width: 100%; padding: 12px 16px; border: 1px solid #cbd5e1; border-radius: 12px; font-size: 0.95rem; resize: vertical;">{{ usuario.bio }}</textarea>
+                <small style="color: #64748b; font-size: 0.8rem; margin-top: 4px; display: block;">Dica: Escreva palavras como "suspense sombrio", "viagem no tempo", "inteligência artificial", "crítica social" para sugestões mais ricas.</small>
+              </div>
+
+              <!-- Gêneros Favoritos -->
+              <div>
+                <label style="display: block; font-size: 0.88rem; font-weight: 700; color: #1e293b; margin-bottom: 6px;">Gêneros Favoritos (separados por vírgula):</label>
+                <input type="text" id="inputPerfilGeneros" name="generos_favoritos" value="{{ usuario.generos_favoritos }}" class="footer-global__input" placeholder="Ex: Ficção Científica, Clássicos, Romance, Suspense, Ação" style="width: 100%; padding: 12px 16px; border: 1px solid #cbd5e1; border-radius: 12px; font-size: 0.95rem;">
+                
+                <!-- Chips para Adicionar Rapidamente -->
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; align-items: center;">
+                  <span style="font-size: 0.78rem; font-weight: 600; color: #64748b;">Adicionar com 1 clique:</span>
+                  <button type="button" onclick="adicionarChipGenero('Ficção Científica')" style="background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; padding: 4px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 600; cursor: pointer;">+ Ficção Científica</button>
+                  <button type="button" onclick="adicionarChipGenero('Clássicos')" style="background: #fefce8; border: 1px solid #fef08a; color: #854d0e; padding: 4px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 600; cursor: pointer;">+ Clássicos</button>
+                  <button type="button" onclick="adicionarChipGenero('Suspense')" style="background: #fdf2f8; border: 1px solid #fbcfe8; color: #9d174d; padding: 4px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 600; cursor: pointer;">+ Suspense</button>
+                  <button type="button" onclick="adicionarChipGenero('Romance')" style="background: #fff1f2; border: 1px solid #fecdd3; color: #be123c; padding: 4px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 600; cursor: pointer;">+ Romance</button>
+                  <button type="button" onclick="adicionarChipGenero('Ação')" style="background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; padding: 4px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 600; cursor: pointer;">+ Ação</button>
+                  <button type="button" onclick="adicionarChipGenero('Comédia')" style="background: #fffbeb; border: 1px solid #fde68a; color: #b45309; padding: 4px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 600; cursor: pointer;">+ Comédia</button>
+                  <button type="button" onclick="adicionarChipGenero('Documentários')" style="background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; padding: 4px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 600; cursor: pointer;">+ Documentários</button>
+                </div>
+              </div>
+
+              <!-- Interesses & Palavras-chave -->
+              <div>
+                <label style="display: block; font-size: 0.88rem; font-weight: 700; color: #1e293b; margin-bottom: 6px;">Interesses, Temas e Palavras-chave (separados por vírgula):</label>
+                <input type="text" id="inputPerfilInteresses" name="interesses" value="{{ usuario.interesses }}" class="footer-global__input" placeholder="Ex: inteligência artificial, crimes, robôs, século XIX, Rio de Janeiro, cartas, espionagem" style="width: 100%; padding: 12px 16px; border: 1px solid #cbd5e1; border-radius: 12px; font-size: 0.95rem;">
+              </div>
+
+              <!-- Autores Favoritos -->
+              <div>
+                <label style="display: block; font-size: 0.88rem; font-weight: 700; color: #1e293b; margin-bottom: 6px;">Autores Favoritos (separados por vírgula):</label>
+                <input type="text" id="inputPerfilAutores" name="autores_favoritos" value="{{ usuario.autores_favoritos }}" class="footer-global__input" placeholder="Ex: Machado de Assis, Anne Rice, Carlos Viana, Philip K. Dick" style="width: 100%; padding: 12px 16px; border: 1px solid #cbd5e1; border-radius: 12px; font-size: 0.95rem;">
+              </div>
+
+              <div style="display: flex; gap: 14px; align-items: center; margin-top: 10px; flex-wrap: wrap;">
+                <button type="submit" class="profile-controls__btn" style="background: #5E0B15; color: #fff; padding: 14px 28px; font-size: 0.95rem;">
+                  💾 Salvar no Banco de Dados e Atualizar Sugestões
+                </button>
+                <button type="button" class="profile-controls__btn" onclick="selecionarAbaPerfil('suggestions')" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; padding: 14px 24px; font-size: 0.92rem; box-shadow: none;">
+                  Ver Sugestões Atuais
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
+      </div>
+
+      <!-- ABA 4: BLOCO DE RASCUNHO -->
+      <div id="tabPane-draft" class="profile-tab-pane" style="{% if aba_ativa != 'draft' %}display: none;{% endif %}">
+        <section class="board-container" style="box-shadow: none; padding: 0;">
+          <div class="text-editor" style="display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+              <div class="text-editor__toolbar">
+                <button type="button" class="perfil-controles__btn" data-command="bold" style="padding: 9px 18px; font-size: 0.85rem;">Negrito</button>
+                <button type="button" class="perfil-controles__btn" data-command="italic" style="padding: 9px 18px; font-size: 0.85rem;">Itálico</button>
+                <button type="button" class="perfil-controles__btn" data-command="underline" style="padding: 9px 18px; font-size: 0.85rem;">Sublinhado</button>
+              </div>
+              <a href="{{ url_for('modelo_grafica') }}" class="formulario-contato__btn" style="text-decoration: none; background: var(--bg-nav); color: #fff; padding: 10px 22px; border-radius: 999px; font-size: 0.88rem; font-weight: 700;">
+                Abrir Modelo Completo para Gráfica (Páginas A4) &rarr;
+              </a>
+            </div>
+            <div contenteditable="true" class="text-editor__textarea" style="border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; min-height: 220px; outline: none; background: #fff; color: #252b42;">Comece a escrever seu rascunho literário aqui...</div>
+          </div>
+        </section>
+      </div>
+
+      <!-- ABA 5: CHAT DE BATE-PAPO -->
+      <div id="tabPane-chat" class="profile-tab-pane" style="{% if aba_ativa != 'chat' %}display: none;{% endif %}">
+        <section class="board-container" style="box-shadow: none; padding: 0;">
+          <div class="social-chat" style="display: flex; flex-direction: column; gap: 16px;">
+            <div class="social-chat__input-group" style="display: flex; gap: 10px;">
+              <input type="text" id="chatInput" class="social-chat__input" placeholder="O que você está pensando sobre sua leitura atual?" style="flex: 1; padding: 12px 18px; border: 1px solid var(--border-color); border-radius: 12px;">
+              <button type="button" id="chatSubmit" class="formulario-contato__btn" style="padding: 12px 24px;">Enviar</button>
+            </div>
+            <div class="social-chat__feed" id="chatFeed" style="display: flex; flex-direction: column; gap: 14px; margin-top: 8px;">
+              <div class="social-chat__post" style="background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                <strong style="color: var(--bg-nav); display: block; margin-bottom: 6px;">{{ usuario.nome }}</strong>
+                <p style="color: #252b42; font-size: 0.95rem; margin: 0;">Conectado ao BookShelf! Prateleira e sugestões literárias ativas.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- ABA 6: REVISÃO E PUBLICAÇÃO -->
+      <div id="tabPane-publish" class="profile-tab-pane" style="{% if aba_ativa != 'publish' %}display: none;{% endif %}">
+        <section class="board-container" style="box-shadow: none; padding: 0;">
+          <div class="publish-section" style="display: flex; flex-direction: column; gap: 18px;">
+            <h3 style="font-size: 1.15rem; color: var(--bg-nav); margin: 0;">Revisão Ortográfica e Publicação</h3>
+            <button type="button" id="startValidationBtn" class="formulario-contato__btn" style="align-self: flex-start;">Iniciar Validação</button>
+            <div class="progress-container" style="display: none; width: 100%; background: #e2e8f0; border-radius: 999px; height: 16px; overflow: hidden;">
+              <div id="progressBar" style="width: 0%; height: 100%; background: var(--accent-blue); transition: width 0.1s linear;"></div>
+            </div>
+            <p id="validationStatus" style="font-size: 0.92rem; color: #64748b; margin: 0;"></p>
+            <div id="publishActions" style="display: none; flex-direction: column; gap: 16px; margin-top: 10px;">
+              <form action="{{ url_for('publicar_livro') }}" method="POST" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 14px;">
+                <input type="text" name="titulo" class="footer-global__input" placeholder="Título da Obra" required style="padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1;">
+                <input type="file" name="arquivo" class="footer-global__input" accept=".epub" required style="padding: 10px; border-radius: 10px; border: 1px solid #cbd5e1;">
+                <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px;">
+                  <button type="submit" class="formulario-contato__btn" style="background: #15803d; color: #fff; border: none; padding: 12px 24px; border-radius: 999px; cursor: pointer;">Publicar como eBook</button>
+                  <a href="{{ url_for('modelo_grafica') }}" class="formulario-contato__btn" style="background: var(--bg-nav); color: #fff; border: none; padding: 12px 24px; border-radius: 999px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center;">Preparar para Impressão (Modelo Gráfica A4)</a>
+                </div>
+              </form>
+            </div>
+          </div>
+        </section>
+      </div>
+
+    </div>
 
   </main>
 

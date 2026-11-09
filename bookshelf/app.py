@@ -152,6 +152,12 @@ def inicializar_banco():
                 mysql.connection.commit()
             except Exception:
                 pass
+            for col in ['bio', 'generos_favoritos', 'interesses', 'autores_favoritos']:
+                try:
+                    cursor.execute(f"ALTER TABLE usuario ADD COLUMN {col} TEXT DEFAULT NULL;")
+                    mysql.connection.commit()
+                except Exception:
+                    pass
             # Cria tabela livros
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS livros (
@@ -171,7 +177,7 @@ def inicializar_banco():
                     PRIMARY KEY (id_usuario, id_livro),
                     FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
                     FOREIGN KEY (id_livro) REFERENCES livros(id_livro) ON DELETE CASCADE
-                );
+                ); 
             """)
             # Cria tabela modelo_grafica para salvar o livro página por página
             cursor.execute("""
@@ -283,6 +289,12 @@ def inicializar_banco():
             mysql.connection.commit()
         except Exception:
             pass
+        for col in ['bio', 'generos_favoritos', 'interesses', 'autores_favoritos']:
+            try:
+                cursor.execute(f"ALTER TABLE usuario ADD COLUMN {col} TEXT;")
+                mysql.connection.commit()
+            except Exception:
+                pass
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS livros (
                 id_livro INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1599,7 +1611,7 @@ def index():
         ][:3]
 
     return render_template(
-        ['home.html', 'index.html'],
+        'home.html',
         livros=livros_filtrados,
         suas_literaturas=suas_literaturas_filtradas,
         busca=busca,
@@ -1931,6 +1943,265 @@ def biblioteca():
     categoria = request.args.get('category', '') or request.args.get('categoria', '')
     return redirect(url_for('index', q=busca, category=categoria))
 
+PERFIS_MOCADOS = {
+    'classicos_brasileiros': {
+        'nome': 'Prof. Carlos Eduardo Silveira',
+        'rotulo': 'Amante de Clássicos & Literatura Nacional',
+        'icone': '🏛️',
+        'bio': 'Pesquisador e professor apaixonado pela era de ouro do romance brasileiro do século XIX. Busca constantemente análises profundas, ironia refinada e estilo clássico.',
+        'generos_favoritos': 'Clássicos, Ficção Histórica',
+        'interesses': 'século XIX, Machado de Assis, ironia machadiana, Rio de Janeiro antigo, literatura brasileira',
+        'autores_favoritos': 'Machado de Assis, José de Alencar, Aluísio Azevedo'
+    },
+    'suspense_gotico': {
+        'nome': 'Mariana Santos Valente',
+        'rotulo': 'Ficção Obscura, Terror & Suspense',
+        'icone': '🦇',
+        'bio': 'Leitora noturna fascinada por atmosferas góticas, investigações sombrias, vampiros, segredos ancestrais e perseguições policiais táticas.',
+        'generos_favoritos': 'Suspense, Terror, Ação',
+        'interesses': 'vampiros, terror gótico, perseguição policial, noite, mistério sombrio, lobos',
+        'autores_favoritos': 'Anne Rice, Mariana Prado, Stephen King'
+    },
+    'romance_afeto': {
+        'nome': 'Beatriz Lins de Albuquerque',
+        'rotulo': 'Romance, Poesia & Afeto Cotidiano',
+        'icone': '💌',
+        'bio': 'Apaixonada por histórias epistolares, reencontros inesperados e dramas humanos que aquecem o coração em dias frios de outono.',
+        'generos_favoritos': 'Romance, Poesia',
+        'interesses': 'cartas, desencontros, afeto, outono, cafeterias antigas, sensibilidade',
+        'autores_favoritos': 'Beatriz Albuquerque, Lucas Santana, Jane Austen'
+    },
+    'ficcao_tecnologia': {
+        'nome': 'Leitor Futurista',
+        'rotulo': 'Ficção Científica & Futuro Digital',
+        'icone': '🚀',
+        'bio': 'Explorando novos mundos literários e tecnologia.',
+        'generos_favoritos': 'Ficção Científica, Tecnologia',
+        'interesses': 'inteligência artificial, cibersegurança, robôs',
+        'autores_favoritos': 'Carlos Viana, Eduardo Brandão'
+    }
+}
+
+CATALOGO_SUGESTOES = [
+    {
+        'id': 1,
+        'id_banco': 1,
+        'titulo': '5minutos',
+        'autor': 'José de Alencar',
+        'genero': 'Clássicos',
+        'capa': 'https://images.unsplash.com/photo-1516979187457-637abb4f9353?auto=format&fit=crop&w=600&q=80',
+        'sinopse': 'Um breve atraso de cinco minutos para pegar o ônibus no Rio de Janeiro desencadeia uma busca apaixonada e misteriosa por uma mulher desconhecida.',
+        'keywords': ['clássicos', 'josé de alencar', 'rio de janeiro', 'amor', 'romance clássico', 'século xix', '5minutos', 'romance', 'época']
+    },
+    {
+        'id': 2,
+        'id_banco': 2,
+        'titulo': 'A Dádiva do Lobo',
+        'autor': 'Anne Rice',
+        'genero': 'Suspense',
+        'capa': 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80',
+        'sinopse': 'Reuben Golding se vê transformado por um ataque bestial e descobre poderes sobrenaturais enquanto navega pelo perigo e pelo fascínio gótico.',
+        'keywords': ['terror', 'suspense', 'anne rice', 'vampiros', 'lobos', 'gótico', 'horror', 'obscura', 'sobrenatural', 'noite']
+    },
+    {
+        'id': 3,
+        'id_banco': None,
+        'titulo': 'Dom Casmurro',
+        'autor': 'Machado de Assis',
+        'genero': 'Clássicos',
+        'capa': 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80',
+        'sinopse': 'Bento Santiago, apelidado de Dom Casmurro, recorda sua juventude e seu amor por Capitu, atormentado pela dúvida eterna sobre a traição.',
+        'keywords': ['clássicos', 'machado de assis', 'século xix', 'rio de janeiro', 'capitu', 'ironia', 'literatura brasileira', 'romance']
+    },
+    {
+        'id': 4,
+        'id_banco': None,
+        'titulo': 'Iracema',
+        'autor': 'José de Alencar',
+        'genero': 'Clássicos',
+        'capa': 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80',
+        'sinopse': 'O clássico romance indigenista narrando o trágico amor entre a jovem tabajara Iracema e o colonizador português Martim.',
+        'keywords': ['clássicos', 'josé de alencar', 'romance', 'amor', 'brasil', 'rio de janeiro']
+    },
+    {
+        'id': 5,
+        'id_banco': None,
+        'titulo': 'O Protocolo Ômega: Linha de Fogo',
+        'autor': 'Carlos Viana',
+        'genero': 'Ficção Científica',
+        'capa': 'https://images.unsplash.com/photo-1508739773434-c26b3d09e071?auto=format&fit=crop&w=600&q=80',
+        'sinopse': 'Quando um pacote de dados ultrassecreto é interceptado nas fronteiras do Cone Sul, Hugo Montenegro se vê perseguido por uma organização paramilitar fantasma.',
+        'keywords': ['ficção científica', 'ação', 'tecnologia', 'carlos viana', 'cibersegurança', 'inteligência artificial', 'robôs', 'tiroteios', 'espionagem']
+    },
+    {
+        'id': 6,
+        'id_banco': None,
+        'titulo': 'Alvo em Movimento: Rota 116',
+        'autor': 'Mariana Prado',
+        'genero': 'Suspense',
+        'capa': 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=600&q=80',
+        'sinopse': 'Uma motorista de transporte blindado transportando uma testemunha-chave precisa cruzar a rodovia federal enquanto emboscadas coordenadas tentam impedi-la.',
+        'keywords': ['suspense', 'ação', 'mariana prado', 'perseguição policial', 'estradas', 'tática', 'policial', 'perseguição']
+    },
+    {
+        'id': 7,
+        'id_banco': None,
+        'titulo': 'Cartas para o Amanhã',
+        'autor': 'Beatriz Albuquerque',
+        'genero': 'Romance',
+        'capa': 'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?auto=format&fit=crop&w=600&q=80',
+        'sinopse': 'Entre cafeterias históricas e estações de trem antigas no inverno do sul, dois jovens artistas trocam correspondências anônimas cheias de confidências e sensibilidade.',
+        'keywords': ['romance', 'poesia', 'beatriz albuquerque', 'cartas', 'afeto', 'epistolar', 'sensibilidade', 'outono', 'cafeterias']
+    },
+    {
+        'id': 8,
+        'id_banco': None,
+        'titulo': 'Sob a Luz das Estrelas de Outono',
+        'autor': 'Lucas Santana',
+        'genero': 'Romance',
+        'capa': 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80',
+        'sinopse': 'Um biólogo marinho e uma arquiteta urbana se encontram durante um retiro no litoral baiano, descobrindo que o amor exige desacelerar.',
+        'keywords': ['romance', 'lucas santana', 'estrelas de outono', 'afeto', 'outono', 'estrelas', 'amor', 'sensibilidade']
+    },
+    {
+        'id': 9,
+        'id_banco': None,
+        'titulo': 'Manual do Caos Diário: Como Sobreviver a Si Mesmo',
+        'autor': 'Tiago Fontes',
+        'genero': 'Comédia',
+        'capa': 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=600&q=80',
+        'sinopse': 'Uma coletânea impagável de desastres cotidianos: montagem de móveis, conversas em elevadores e reuniões corporativas que poderiam ser e-mails.',
+        'keywords': ['comédia', 'crônicas', 'tiago fontes', 'humor', 'vida adulta', 'reuniões', 'caos', 'comédias ácidas', 'sátiras', 'cotidiano']
+    },
+    {
+        'id': 10,
+        'id_banco': None,
+        'titulo': 'O Casamento da Minha Inimiga',
+        'autor': 'Clarice Montenegro',
+        'genero': 'Comédia',
+        'capa': 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=600&q=80',
+        'sinopse': 'Uma sequência absurda de coincidências coloca Clara na posição de madrinha da garota que infernizou seu ensino médio em um campo minado de gafes.',
+        'keywords': ['comédia', 'crônicas', 'clarice montenegro', 'humor', 'casamento', 'inimiga', 'sátiras urbanas', 'caos']
+    },
+    {
+        'id': 11,
+        'id_banco': None,
+        'titulo': 'Além do Algoritmo: A Revolução Invisível da Tecnologia',
+        'autor': 'Eduardo Brandão',
+        'genero': 'Documentários',
+        'capa': 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=600&q=80',
+        'sinopse': 'Uma investigação documental contundente revelando os bastidores da automação e o futuro do trabalho e da sensibilidade humana.',
+        'keywords': ['documentários', 'tecnologia', 'ficção científica', 'eduardo brandão', 'inteligência artificial', 'automação', 'robôs', 'cibersegurança']
+    },
+    {
+        'id': 12,
+        'id_banco': None,
+        'titulo': 'Vozes do Sertão: Memórias, Seca e Resistência',
+        'autor': 'Helena Castro',
+        'genero': 'Documentários',
+        'capa': 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=600&q=80',
+        'sinopse': 'Reunindo 42 relatos orais inéditos sobre o semiárido brasileiro, abordando ancestralidade, ecologia e persistência.',
+        'keywords': ['documentários', 'helena castro', 'sertão', 'seca', 'resistência', 'história oral']
+    }
+]
+
+
+def gerar_sugestoes_personalizadas(perfil, id_usuario=None, livros_na_estante=None):
+    if livros_na_estante is None:
+        livros_na_estante = set()
+        if id_usuario:
+            try:
+                cursor = mysql.connection.cursor()
+                cursor.execute("SELECT id_livro FROM biblioteca_usuario WHERE id_usuario = %s", (id_usuario,))
+                for r in cursor.fetchall():
+                    if isinstance(r, dict):
+                        livros_na_estante.add(r['id_livro'])
+                    else:
+                        livros_na_estante.add(r[0])
+                cursor.close()
+            except Exception:
+                pass
+
+    bio = (perfil.get('bio') or '').lower()
+    generos = (perfil.get('generos_favoritos') or '').lower()
+    interesses = (perfil.get('interesses') or '').lower()
+    autores = (perfil.get('autores_favoritos') or '').lower()
+
+    texto_usuario = f"{bio} {generos} {interesses} {autores}"
+
+    sugestoes_calculadas = []
+    for livro in CATALOGO_SUGESTOES:
+        pontos = 0
+        razoes = []
+
+        # 1. Match de Autor (peso alto)
+        autor_livro = livro['autor'].lower()
+        partes_autor = [p.strip() for p in autor_livro.split() if len(p.strip()) > 2]
+        if autor_livro in autores or any(p in autores for p in partes_autor):
+            pontos += 50
+            razoes.append(f"do autor favorito <strong>{livro['autor']}</strong>")
+        elif any(p in texto_usuario for p in partes_autor):
+            pontos += 25
+            razoes.append(f"menção ao autor <strong>{livro['autor']}</strong>")
+
+        # 2. Match de Gênero
+        genero_livro = livro['genero'].lower()
+        if genero_livro in generos:
+            pontos += 35
+            razoes.append(f"do gênero <strong>{livro['genero']}</strong>")
+        elif any(g.strip() in genero_livro for g in generos.split(',') if g.strip()):
+            pontos += 30
+            razoes.append(f"alinhado a <strong>{livro['genero']}</strong>")
+
+        # 3. Match de Palavras-chave e Interesses
+        matches_keywords = []
+        for kw in livro['keywords']:
+            kw_low = kw.lower()
+            if kw_low in interesses or kw_low in bio:
+                pontos += 15
+                matches_keywords.append(kw)
+            elif kw_low in generos:
+                pontos += 10
+                matches_keywords.append(kw)
+
+        if matches_keywords:
+            termos_formatados = ", ".join(f"<em>{k}</em>" for k in matches_keywords[:2])
+            razoes.append(f"interesse em {termos_formatados}")
+
+        if livro['titulo'].lower() in texto_usuario:
+            pontos += 30
+
+        if pontos > 0:
+            afinidade = min(99, 65 + pontos)
+        else:
+            afinidade = 55
+
+        if razoes:
+            justificativa = "Recomendado com base nas suas preferências " + " e ".join(razoes) + "."
+        else:
+            justificativa = f"Recomendado pela curadoria com base no seu gosto literário em <strong>{livro['genero']}</strong>."
+
+        sugestoes_calculadas.append({
+            'id': livro['id'],
+            'id_banco': livro.get('id_banco'),
+            'titulo': livro['titulo'],
+            'autor': livro['autor'],
+            'genero': livro['genero'],
+            'capa': livro['capa'],
+            'sinopse': livro['sinopse'],
+            'afinidade': afinidade,
+            'justificativa': justificativa,
+            'esta_na_estante': bool(livro['id'] in livros_na_estante),
+            '_pontos': pontos
+        })
+
+    sugestoes_calculadas.sort(key=lambda s: (s['_pontos'], s['afinidade']), reverse=True)
+    for s in sugestoes_calculadas:
+        s.pop('_pontos', None)
+
+    return sugestoes_calculadas
+
+
 @app.route('/perfil')
 def perfil():
     if 'usuario_id' not in session:
@@ -1944,7 +2215,10 @@ def perfil():
     id_usuario = session['usuario_id']
     
     cursor = mysql.connection.cursor()
-    cursor.execute("SELECT id_usuario, nome, usuario, cpf FROM usuario WHERE id_usuario = %s", (id_usuario,))
+    cursor.execute("""
+        SELECT id_usuario, nome, usuario, cpf, bio, generos_favoritos, interesses, autores_favoritos 
+        FROM usuario WHERE id_usuario = %s
+    """, (id_usuario,))
     db_user = cursor.fetchone()
     
     nome_exibicao = ""
@@ -1956,10 +2230,14 @@ def perfil():
         nome_exibicao = session.get('nome') or "Escritor(a)"
 
     usuario_atual = {
+        "id_usuario": id_usuario,
         "nome": nome_exibicao,
         "username": db_user['usuario'] if db_user else "anonimo",
-        "cpf": db_user['cpf'] if db_user else "",
-        "bio": "Membro da comunidade Bookshelf conectado ao MySQL."
+        "cpf": db_user.get('cpf', '') if db_user else "",
+        "bio": (db_user.get('bio') or '').strip() if db_user and db_user.get('bio') else "Explorando clássicos da literatura brasileira e escrevendo novos horizontes literários.",
+        "generos_favoritos": (db_user.get('generos_favoritos') or '').strip() if db_user else "",
+        "interesses": (db_user.get('interesses') or '').strip() if db_user else "",
+        "autores_favoritos": (db_user.get('autores_favoritos') or '').strip() if db_user else ""
     }
     
     if busca:
@@ -1980,7 +2258,18 @@ def perfil():
         cursor.execute(query, (id_usuario,))
         
     livros_prateleira = cursor.fetchall()
+
+    cursor.execute("SELECT id_livro FROM biblioteca_usuario WHERE id_usuario = %s", (id_usuario,))
+    rows_estante = cursor.fetchall()
+    ids_na_estante = set()
+    for r in rows_estante:
+        if isinstance(r, dict):
+            ids_na_estante.add(r['id_livro'])
+        else:
+            ids_na_estante.add(r[0])
+
     cursor.close()
+
     tempos_mock = ["1h 50m", "2h 15m", "40m", "3h 00m"]
     for i, lv in enumerate(livros_prateleira):
         if not lv.get('tempo_leitura'):
@@ -1999,14 +2288,112 @@ def perfil():
         }
     ]
 
+    sugestoes = gerar_sugestoes_personalizadas(usuario_atual, id_usuario=id_usuario, livros_na_estante=ids_na_estante)
+    aba_ativa = request.args.get('tab', 'shelf').strip().lower()
+
     return render_template(
         'usuario.html', 
         usuario=usuario_atual, 
         livros_prateleira=livros_prateleira,
         rascunhos=rascunhos_estaticos,
         publicados=[],
-        busca=busca
+        busca=busca,
+        perfis_mocados=PERFIS_MOCADOS,
+        sugestoes=sugestoes,
+        aba_ativa=aba_ativa
     )
+
+
+@app.route('/perfil/carregar_mocado/<perfil_id>', methods=['GET', 'POST'])
+def carregar_perfil_mocado(perfil_id):
+    if 'usuario_id' not in session:
+        flash("Faça login para selecionar um perfil mocado.", "error")
+        return redirect(url_for('login'))
+
+    perfil_dados = PERFIS_MOCADOS.get(perfil_id)
+    if not perfil_dados:
+        flash("Perfil mocado não encontrado.", "error")
+        return redirect(url_for('perfil'))
+
+    id_usuario = session['usuario_id']
+    cursor = mysql.connection.cursor()
+    cursor.execute("""
+        UPDATE usuario 
+        SET nome = %s, bio = %s, generos_favoritos = %s, interesses = %s, autores_favoritos = %s 
+        WHERE id_usuario = %s
+    """, (
+        perfil_dados['nome'],
+        perfil_dados['bio'],
+        perfil_dados['generos_favoritos'],
+        perfil_dados['interesses'],
+        perfil_dados['autores_favoritos'],
+        id_usuario
+    ))
+    mysql.connection.commit()
+    cursor.close()
+
+    session['nome'] = perfil_dados['nome']
+    flash(f"Perfil de '{perfil_dados['nome']}' aplicado com sucesso! Sugestões recalculadas.", "success")
+    return redirect(url_for('perfil', tab='suggestions'))
+
+
+@app.route('/perfil/salvar_preferencias', methods=['POST'])
+def salvar_preferencias_perfil():
+    if 'usuario_id' not in session:
+        flash("Por favor, faça o login primeiro.", "error")
+        return redirect(url_for('login'))
+
+    id_usuario = session['usuario_id']
+    nome = (request.form.get('nome') or '').strip()
+    bio = (request.form.get('bio') or '').strip()
+    generos_favoritos = (request.form.get('generos_favoritos') or '').strip()
+    interesses = (request.form.get('interesses') or '').strip()
+    autores_favoritos = (request.form.get('autores_favoritos') or '').strip()
+
+    if not nome:
+        nome = session.get('nome') or 'Leitor'
+
+    cursor = mysql.connection.cursor()
+    cursor.execute("""
+        UPDATE usuario 
+        SET nome = %s, bio = %s, generos_favoritos = %s, interesses = %s, autores_favoritos = %s 
+        WHERE id_usuario = %s
+    """, (nome, bio, generos_favoritos, interesses, autores_favoritos, id_usuario))
+    mysql.connection.commit()
+    cursor.close()
+
+    session['nome'] = nome
+    flash("Preferências e informações do perfil salvas no banco de dados com sucesso!", "success")
+    return redirect(url_for('perfil', tab='suggestions'))
+
+
+@app.route('/perfil/adicionar_estante/<int:id_livro>', methods=['POST'])
+def adicionar_livro_estante(id_livro):
+    if 'usuario_id' not in session:
+        flash("Por favor, faça login para salvar livros na estante.", "error")
+        return redirect(url_for('login'))
+
+    id_usuario = session['usuario_id']
+    cursor = mysql.connection.cursor()
+    cursor.execute("SELECT 1 FROM biblioteca_usuario WHERE id_usuario = %s AND id_livro = %s", (id_usuario, id_livro))
+    if not cursor.fetchone():
+        cursor.execute("INSERT INTO biblioteca_usuario (id_usuario, id_livro, progresso) VALUES (%s, %s, %s)", (id_usuario, id_livro, 0.00))
+        mysql.connection.commit()
+    cursor.close()
+
+    flash("Livro adicionado com sucesso à sua prateleira virtual!", "success")
+    return redirect(url_for('perfil', tab='suggestions'))
+
+
+@app.route('/api/sugestoes', methods=['POST'])
+def api_sugestoes():
+    dados = request.get_json(silent=True) or {}
+    id_usuario = session.get('usuario_id')
+    sugestoes = gerar_sugestoes_personalizadas(dados, id_usuario=id_usuario)
+    return jsonify({
+        'ok': True,
+        'sugestoes': sugestoes
+    })
 
 @app.route('/perfil/publicar', methods=['POST'])
 def publicar_livro():

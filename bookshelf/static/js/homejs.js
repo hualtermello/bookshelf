@@ -12,9 +12,75 @@ document.addEventListener("DOMContentLoaded", () => {
   // 1. Sistema de Abas Dinâmicas no Main
   
   const tabButtons = document.querySelectorAll(".profile-controls__btn[data-tab]");
-
   const dynamicContainer = document.getElementById("dynamicMainContainer");
   const initialShelfHTML = dynamicContainer ? dynamicContainer.innerHTML : "";
+
+  window.selecionarAbaPerfil = function(tabKey) {
+    const btn = document.querySelector(`.profile-controls__btn[data-tab="${tabKey}"]`);
+    if (btn) {
+      btn.click();
+    }
+  };
+
+  window.preencherPerfilMocado = function(nome, bio, generos, interesses, autores) {
+    const fNome = document.getElementById('inputPerfilNome');
+    const fBio = document.getElementById('inputPerfilBio');
+    const fGeneros = document.getElementById('inputPerfilGeneros');
+    const fInteresses = document.getElementById('inputPerfilInteresses');
+    const fAutores = document.getElementById('inputPerfilAutores');
+
+    if (fNome) fNome.value = nome;
+    if (fBio) fBio.value = bio;
+    if (fGeneros) fGeneros.value = generos;
+    if (fInteresses) fInteresses.value = interesses;
+    if (fAutores) fAutores.value = autores;
+
+    const formEl = document.getElementById('formPerfilPreferencias');
+    if (formEl) {
+      formEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      formEl.style.transition = 'all 0.3s ease';
+      formEl.style.boxShadow = '0 0 0 4px rgba(94, 11, 21, 0.25)';
+      setTimeout(() => {
+        formEl.style.boxShadow = '0 4px 16px rgba(0,0,0,0.04)';
+      }, 1500);
+    }
+  };
+
+  window.adicionarChipGenero = function(genero) {
+    const inputGeneros = document.getElementById('inputPerfilGeneros');
+    if (!inputGeneros) return;
+    let atual = inputGeneros.value.trim();
+    if (!atual) {
+      inputGeneros.value = genero;
+    } else {
+      const lista = atual.split(',').map(s => s.trim().toLowerCase());
+      if (!lista.includes(genero.toLowerCase())) {
+        inputGeneros.value = atual + ', ' + genero;
+      }
+    }
+  };
+
+  function alternarAbaAtiva(tabKey) {
+    tabButtons.forEach((b) => {
+      if (b.getAttribute("data-tab") === tabKey) {
+        b.classList.add("active");
+      } else {
+        b.classList.remove("active");
+      }
+    });
+
+    const paneAlvo = document.getElementById(`tabPane-${tabKey}`);
+    const todosPanes = document.querySelectorAll(".profile-tab-pane");
+
+    if (paneAlvo && todosPanes.length > 0) {
+      todosPanes.forEach((p) => (p.style.display = "none"));
+      paneAlvo.style.display = "block";
+      initDynamicTabLogic(tabKey);
+    } else if (dynamicContainer && tabContents[tabKey]) {
+      dynamicContainer.innerHTML = tabContents[tabKey];
+      initDynamicTabLogic(tabKey);
+    }
+  }
 
   const tabContents = {
     shelf: initialShelfHTML || `
@@ -177,15 +243,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
   tabButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
-      tabButtons.forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
       const tabKey = btn.getAttribute("data-tab");
-      if (tabContents[tabKey]) {
-        dynamicContainer.innerHTML = tabContents[tabKey];
-        initDynamicTabLogic(tabKey);
-      }
+      alternarAbaAtiva(tabKey);
     });
   });
+
+  // Verifica se há aba solicitada via query string (ex: ?tab=suggestions)
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const paramTab = params.get("tab");
+    if (paramTab) {
+      alternarAbaAtiva(paramTab);
+    }
+  } catch (e) {}
 
   // 2. Validação do Formulário de Contato
   const contactForm =

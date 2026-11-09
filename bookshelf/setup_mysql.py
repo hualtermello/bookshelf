@@ -83,6 +83,12 @@ def main():
 
     # População inicial de autores se estiver vazio
     cur.execute(f"USE `{db_name}`;")
+    for col in ['bio', 'generos_favoritos', 'interesses', 'autores_favoritos']:
+        try:
+            cur.execute(f"ALTER TABLE usuario ADD COLUMN {col} TEXT DEFAULT NULL;")
+            conn.commit()
+        except Exception:
+            pass
     try:
         cur.execute("ALTER TABLE lancamentos_autorais ADD COLUMN capa_imagem VARCHAR(500);")
         conn.commit()

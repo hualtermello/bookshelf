@@ -3609,5 +3609,61 @@ input[type="file"].footer-global__input {
   box-shadow: 0 0 0 3px rgba(94, 11, 21, 0.15) !important;
 }
 
+/* ====================================================================
+   ESTILOS DO MOTOR DE SUGESTÕES E PERFIS MOCADOS (CONECTADOS AO BANCO)
+   ==================================================================== */
+.suggestion-card {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease !important;
+}
+
+.suggestion-card:hover {
+  transform: translateY(-5px) !important;
+  box-shadow: 0 16px 32px rgba(45, 23, 15, 0.12) !important;
+  border-color: #bc8034 !important;
+}
+
+.mock-profile-card {
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.mock-profile-card:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 8px 20px rgba(94, 11, 21, 0.12) !important;
+  border-color: #5E0B15 !important;
+}
+
+.profile-tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: background-color 0.2s ease, transform 0.15s ease;
+}
+
+.profile-tag-pill:hover {
+  transform: scale(1.04);
+}
+
+.badge-tab-count {
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 1px 7px;
+  border-radius: 999px;
+  margin-left: 6px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+@media (max-width: 768px) {
+  .suggestions-cards-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .mock-profiles-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+
 
 
